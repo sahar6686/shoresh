@@ -327,10 +327,14 @@ function updatePulse(){
   const total=successCache.length;
   const el=$('pulse');
   if(m>0){
-    $('pulseTxt').innerHTML=`נסגרו החודש <b>${m}</b> צרכים · תודה לכל מי שנתן יד`;
+    $('pulseTxt').innerHTML=(m===1
+      ?`נסגר החודש <b>צורך אחד</b>`
+      :`נסגרו החודש <b>${m}</b> צרכים`)+` · תודה לכל מי שנתן יד`;
     el.classList.remove('hide');
   }else if(total>0){
-    $('pulseTxt').innerHTML=`<b>${total}</b> מעגלים כבר נסגרו · תודה לכל מי שנתן יד`;
+    $('pulseTxt').innerHTML=(total===1
+      ?`<b>מעגל אחד</b> כבר נסגר`
+      :`<b>${total}</b> מעגלים כבר נסגרו`)+` · תודה לכל מי שנתן יד`;
     el.classList.remove('hide');
   }else{
     el.classList.add('hide');

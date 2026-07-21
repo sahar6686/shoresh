@@ -64,18 +64,19 @@ $$;
 
 -- ---------- טריגרים ----------
 
--- חווה חדשה תמיד נוצרת לא-מאומתת, ורק אדמין רשאי לשנות את verified
+-- חווה חדשה תמיד נוצרת לא-מאומתת, ורק אדמין רשאי לשנות את verified.
+-- האילוץ חל רק על משתמשי API מחוברים (auth.uid() קיים) שאינם אדמין:
+-- עבודה ישירה מה-Dashboard (postgres, בלי auth.uid()) היא ערוץ האישור הידני,
+-- וכתיבה אנונימית ממילא חסומה ב-RLS.
 create or replace function public.enforce_farm_verification()
 returns trigger
 language plpgsql security definer set search_path = public
 as $$
 begin
-  if tg_op = 'INSERT' then
-    if not public.is_admin() then
+  if auth.uid() is not null and not public.is_admin() then
+    if tg_op = 'INSERT' then
       new.verified := false;
-    end if;
-  elsif tg_op = 'UPDATE' then
-    if new.verified is distinct from old.verified and not public.is_admin() then
+    elsif new.verified is distinct from old.verified then
       raise exception 'רק אדמין רשאי לשנות סטטוס אימות';
     end if;
   end if;
