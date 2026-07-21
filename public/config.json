@@ -1,0 +1,25 @@
+{
+  "sponsors": {
+    "active": false,
+    "_note": "active=false מסתיר את אזור החסויות לגמרי. הפוך ל-true כשיש נותן חסות ראשון.",
+    "items": [
+      {
+        "name": "שם החברה",
+        "tier": "ראשי",
+        "logo": "",
+        "emoji": "🔩",
+        "line": "מה הם תרמו בפועל",
+        "url": ""
+      }
+    ]
+  },
+  "builder": {
+    "active": true,
+    "caption": "פותח ונבנה על ידי",
+    "logo": "hazani-logo.png",
+    "subtitle": "מערכות חכמות, IoT ופיתוח",
+    "whatsapp": "972542566722",
+    "whatsapp_text": "היי, ראיתי את שורש ורציתי לשמוע עוד"
+  },
+  "regions": ["גולן", "גליל", "נגב", "הר"]
+}

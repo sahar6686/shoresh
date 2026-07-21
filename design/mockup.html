@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>שורש — מוקאפ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEECE0; --card:#FBFAF4; --ink:#23221C; --ink-soft:#6E6C5D;
+    --olive:#4C5A31; --olive-deep:#374420; --wheat:#CF9526; --wheat-soft:#F1DEAB;
+    --clay:#B0603A; --clay-soft:#EBCFBF; --sage:#DFE4CF; --delivered:#5C7A3F;
+    --line:#D9D6C4; --shadow:0 8px 30px rgba(40,42,24,.10);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:'Assistant',sans-serif; color:var(--ink);
+    background:
+      radial-gradient(circle at 20% 10%, #E4E7D6 0%, transparent 45%),
+      radial-gradient(circle at 85% 90%, #EAD9BE 0%, transparent 40%),
+      #E7E4D6;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:22px 14px 40px; gap:18px;
+  }
+  .intro{max-width:390px; text-align:center; color:var(--olive-deep);}
+  .intro h1{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:30px; letter-spacing:-.5px;}
+  .intro .leaf{color:var(--wheat);}
+  .intro p{font-size:13.5px; color:var(--ink-soft); margin-top:4px; line-height:1.5;}
+
+  /* role switch */
+  .roleswitch{display:flex; background:#DAD7C6; border-radius:100px; padding:4px; gap:2px; box-shadow:inset 0 1px 3px rgba(0,0,0,.08);}
+  .roleswitch button{
+    border:0; background:transparent; font-family:'Assistant'; font-weight:700; font-size:13px;
+    color:var(--ink-soft); padding:8px 16px; border-radius:100px; cursor:pointer; transition:.25s;
+  }
+  .roleswitch button.on{background:var(--card); color:var(--olive-deep); box-shadow:0 2px 6px rgba(0,0,0,.12);}
+
+  /* phone */
+  .phone{
+    width:390px; max-width:100%; height:788px; background:var(--paper);
+    border-radius:44px; box-shadow:var(--shadow), 0 0 0 10px #1c1b16, 0 0 0 12px #33322a;
+    overflow:hidden; position:relative; display:flex; flex-direction:column;
+  }
+  .notch{position:absolute; top:0; left:50%; transform:translateX(-50%); width:150px; height:26px; background:#1c1b16; border-radius:0 0 18px 18px; z-index:40;}
+
+  /* header */
+  .apphead{
+    padding:26px 20px 14px; background:linear-gradient(180deg,var(--olive) 0%, var(--olive-deep) 100%);
+    color:#F7F4E9; position:relative; flex-shrink:0;
+  }
+  .apphead .brand{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:23px; display:flex; align-items:center; gap:7px;}
+  .apphead .brand .spr{color:var(--wheat-soft);}
+  .apphead .sub{font-size:12px; opacity:.82; margin-top:2px; font-weight:500;}
+  .pulse{
+    margin-top:12px; background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.18);
+    border-radius:14px; padding:9px 12px; font-size:12.5px; display:flex; align-items:center; gap:8px; font-weight:600;
+  }
+  .pulse b{color:var(--wheat-soft); font-size:15px;}
+  .dot{width:7px; height:7px; border-radius:50%; background:#8FCB6E; box-shadow:0 0 0 0 rgba(143,203,110,.7); animation:p 2s infinite;}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(143,203,110,.6);}70%{box-shadow:0 0 0 7px rgba(143,203,110,0);}100%{box-shadow:0 0 0 0 rgba(143,203,110,0);}}
+
+  /* scroll body */
+  .screen{flex:1; overflow-y:auto; padding:16px 16px 90px;}
+  .screen::-webkit-scrollbar{display:none;}
+
+  /* filters */
+  .filters{display:flex; gap:7px; overflow-x:auto; padding-bottom:4px; margin-bottom:12px;}
+  .filters::-webkit-scrollbar{display:none;}
+  .chip{
+    flex-shrink:0; border:1.5px solid var(--line); background:var(--card); color:var(--ink-soft);
+    font-family:'Assistant'; font-weight:600; font-size:12.5px; padding:6px 13px; border-radius:100px; cursor:pointer; transition:.18s;
+  }
+  .chip.on{background:var(--olive); border-color:var(--olive); color:#F7F4E9;}
+
+  /* need card */
+  .card{
+    background:var(--card); border-radius:18px; padding:15px; margin-bottom:12px;
+    border:1px solid var(--line); box-shadow:0 3px 10px rgba(40,42,24,.05); cursor:pointer; transition:.18s;
+  }
+  .card:active{transform:scale(.985);}
+  .card .top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:9px;}
+  .farm{display:flex; align-items:center; gap:9px;}
+  .avatar{width:38px; height:38px; border-radius:12px; background:var(--sage); display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0;}
+  .farm .name{font-weight:700; font-size:14.5px; line-height:1.1;}
+  .farm .loc{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .tag{font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; white-space:nowrap;}
+  .tag.obj{background:#E3E8D2; color:var(--olive-deep);}
+  .tag.trans{background:var(--wheat-soft); color:#8A6410;}
+  .tag.time{background:var(--clay-soft); color:#8A3F1E;}
+  .card h3{font-family:'Assistant'; font-weight:700; font-size:15.5px; margin-bottom:5px; line-height:1.3;}
+  .card .desc{font-size:12.8px; color:var(--ink-soft); line-height:1.5;}
+  .card .foot{display:flex; align-items:center; gap:6px; margin-top:11px; font-size:11.5px; color:var(--ink-soft);}
+  .verified{color:var(--olive); font-weight:700; display:flex; align-items:center; gap:3px;}
+
+  /* status thread */
+  .thread{display:flex; align-items:center; gap:0; margin-top:12px;}
+  .step{flex:1; text-align:center; position:relative;}
+  .step .b{width:22px; height:22px; border-radius:50%; margin:0 auto 4px; background:#E5E2D2; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--ink-soft);}
+  .step.done .b{background:var(--olive); border-color:var(--olive); color:#fff;}
+  .step.active .b{background:var(--wheat); border-color:var(--wheat); color:#fff; animation:pop .3s;}
+  @keyframes pop{0%{transform:scale(.6);}100%{transform:scale(1);}}
+  .step .l{font-size:10px; font-weight:600; color:var(--ink-soft);}
+  .step.done .l,.step.active .l{color:var(--ink);}
+  .line{position:absolute; top:11px; right:-50%; width:100%; height:2px; background:var(--line); z-index:-1;}
+  .step.done .line{background:var(--olive);}
+
+  /* buttons */
+  .btn{
+    width:100%; border:0; font-family:'Assistant'; font-weight:700; font-size:15px; padding:14px;
+    border-radius:14px; cursor:pointer; transition:.18s; margin-top:8px;
+  }
+  .btn.primary{background:linear-gradient(180deg,#DDA436,#CF9526); color:#3a2a05; box-shadow:0 5px 16px rgba(207,149,38,.38);}
+  .btn.primary:active{transform:translateY(1px); box-shadow:0 3px 10px rgba(207,149,38,.3);}
+  .btn.olive{background:var(--olive); color:#F7F4E9;}
+  .btn.ghost{background:transparent; border:1.5px solid var(--line); color:var(--ink);}
+
+  /* detail sheet */
+  .overlay{position:absolute; inset:0; background:rgba(30,30,20,.45); z-index:50; display:none; align-items:flex-end;}
+  .overlay.open{display:flex;}
+  .sheet{background:var(--paper); width:100%; border-radius:26px 26px 0 0; padding:8px 18px 26px; max-height:92%; overflow-y:auto; animation:up .3s;}
+  .sheet::-webkit-scrollbar{display:none;}
+  @keyframes up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .grab{width:42px; height:5px; background:var(--line); border-radius:3px; margin:8px auto 16px;}
+  .sheet .big{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:22px; line-height:1.25; margin:6px 0 4px;}
+  .infoline{display:flex; gap:8px; align-items:center; font-size:13px; color:var(--ink-soft); margin:9px 0; padding:11px 13px; background:var(--card); border-radius:12px; border:1px solid var(--line);}
+  .infoline b{color:var(--ink);}
+  .contactbox{background:#E9EED9; border:1px dashed var(--olive); border-radius:14px; padding:14px; margin-top:12px; display:none;}
+  .contactbox.show{display:block; animation:pop .35s;}
+  .contactbox .t{font-weight:800; color:var(--olive-deep); font-size:14px; margin-bottom:8px; display:flex; gap:6px; align-items:center;}
+  .contactrow{display:flex; gap:8px;}
+  .contactrow a{flex:1; text-align:center; text-decoration:none; background:var(--card); border:1px solid var(--line); border-radius:11px; padding:10px; font-weight:700; font-size:13px; color:var(--olive-deep);}
+
+  /* success feed */
+  .succard{
+    background:linear-gradient(140deg,#F5F1E4, #EDF1DF); border:1px solid #CBD3B3; border-radius:18px;
+    padding:15px; margin-bottom:12px; position:relative; overflow:hidden;
+  }
+  .succard::before{content:""; position:absolute; top:-20px; left:-20px; width:70px; height:70px; background:radial-gradient(circle,rgba(207,149,38,.25),transparent 70%);}
+  .succard .win{display:flex; align-items:center; gap:8px; font-weight:800; color:var(--olive-deep); font-size:14px; margin-bottom:7px;}
+  .check{width:24px; height:24px; border-radius:50%; background:var(--delivered); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;}
+  .succard .body{font-size:13px; color:#4a4a38; line-height:1.5;}
+  .succard .giver{margin-top:9px; font-size:12px; color:var(--olive); font-weight:700; display:flex; align-items:center; gap:6px;}
+  .heart{display:flex; align-items:center; gap:5px; margin-top:10px; font-size:12px; color:var(--ink-soft); font-weight:600;}
+
+  /* my requests */
+  .myhead{font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px; margin-bottom:4px;}
+  .empty{text-align:center; color:var(--ink-soft); padding:40px 20px; font-size:13.5px; line-height:1.6;}
+  .empty .em{font-size:40px; display:block; margin-bottom:10px;}
+
+  /* post form */
+  .form label{display:block; font-weight:700; font-size:13.5px; margin:15px 0 7px;}
+  .typepick{display:flex; gap:8px;}
+  .typepick .tp{flex:1; border:1.5px solid var(--line); background:var(--card); border-radius:13px; padding:12px 6px; text-align:center; cursor:pointer; transition:.18s;}
+  .typepick .tp .ic{font-size:22px; display:block; margin-bottom:4px;}
+  .typepick .tp .nm{font-size:12px; font-weight:700; color:var(--ink-soft);}
+  .typepick .tp.on{border-color:var(--olive); background:#EAEFDB;}
+  .typepick .tp.on .nm{color:var(--olive-deep);}
+  .form input,.form textarea{
+    width:100%; border:1.5px solid var(--line); background:var(--card); border-radius:12px;
+    padding:12px; font-family:'Assistant'; font-size:14px; color:var(--ink); resize:none;
+  }
+  .form input:focus,.form textarea:focus{outline:none; border-color:var(--olive);}
+
+  /* bottom nav */
+  .nav{
+    position:absolute; bottom:0; right:0; left:0; height:72px; background:var(--card);
+    border-top:1px solid var(--line); display:flex; padding-bottom:6px; z-index:30;
+  }
+  .nav button{flex:1; border:0; background:transparent; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; color:var(--ink-soft); font-family:'Assistant'; font-weight:600; font-size:10.5px;}
+  .nav button .ni{font-size:20px; opacity:.7; transition:.18s;}
+  .nav button.on{color:var(--olive-deep);}
+  .nav button.on .ni{opacity:1; transform:translateY(-1px);}
+  .fab{
+    background:var(--wheat)!important; color:#3a2a05; width:52px; height:52px; border-radius:50%!important;
+    margin-top:-18px; box-shadow:0 5px 16px rgba(207,149,38,.45); font-size:26px!important; flex:none!important;
+  }
+  .fab .ni{font-size:26px!important; opacity:1!important; color:#3a2a05;}
+
+  .toast{
+    position:absolute; bottom:88px; left:50%; transform:translateX(-50%) translateY(20px); z-index:60;
+    background:var(--olive-deep); color:#F7F4E9; padding:11px 18px; border-radius:100px; font-size:13px; font-weight:600;
+    opacity:0; transition:.3s; white-space:nowrap; box-shadow:0 6px 20px rgba(0,0,0,.25);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .hide{display:none!important;}
+
+  /* ---- support screen ---- */
+  .sup-hero{
+    background:linear-gradient(150deg,#EFE6D0,#E6ECD6); border:1px solid #D3D8BE;
+    border-radius:20px; padding:18px; text-align:center; position:relative; overflow:hidden;
+  }
+  .sup-hero::after{content:"🌱"; position:absolute; font-size:90px; opacity:.07; bottom:-18px; left:-8px; transform:rotate(-12deg);}
+  .sup-hero .halo{width:56px; height:56px; border-radius:50%; background:radial-gradient(circle,#F3DFA6,#E9C877); display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 8px; box-shadow:0 4px 16px rgba(207,149,38,.35);}
+  .sup-hero h2{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:20px; color:var(--olive-deep); line-height:1.25;}
+  .sup-hero p{font-size:12.5px; color:#5c5a48; margin-top:5px; line-height:1.55;}
+
+  .trust{display:flex; align-items:center; justify-content:center; gap:6px; font-size:11px; color:var(--ink-soft); margin-top:12px;}
+
+  /* ---- sponsors ---- */
+  .sponsor{display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line);
+    border-radius:16px; padding:13px 14px; margin-bottom:10px;}
+  .slogo{width:44px; height:44px; border-radius:13px; background:var(--sage); display:flex; align-items:center;
+    justify-content:center; font-size:22px; flex-shrink:0;}
+  .snm{font-weight:800; font-size:14.5px; display:flex; align-items:center; gap:7px;}
+  .stier{font-size:9.5px; font-weight:800; background:var(--wheat-soft); color:#8A6410; padding:2px 8px; border-radius:100px;}
+  .sln{font-size:12.5px; color:var(--ink-soft); margin-top:2px; line-height:1.45;}
+  .joinbox{background:linear-gradient(140deg,#EFE6D0,#E6ECD6); border:1px solid #D3D8BE; border-radius:18px;
+    padding:17px; margin-top:16px; text-align:center;}
+  .jh{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:17px; color:var(--olive-deep);}
+  .jt{font-size:12.5px; color:#5c5a48; margin-top:6px; line-height:1.55;}
+
+  /* ---- builder credit (compact) ---- */
+  .builder{background:#fff; border:1px solid var(--line); border-radius:13px; padding:9px 11px;
+    margin-top:12px; display:flex; align-items:center; gap:10px;}
+  .builder img{width:64px; height:auto; flex-shrink:0;}
+  .bmid{flex:1; min-width:0; line-height:1.3;}
+  .bcap{font-size:9px; color:var(--ink-soft); font-weight:700; letter-spacing:.3px;}
+  .bsub{font-size:10.5px; color:var(--ink-soft);}
+  .wa{background:#25D366; color:#fff; border:0; border-radius:9px; padding:7px 11px; font-family:'Assistant';
+    font-weight:800; font-size:11.5px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+    text-decoration:none; flex-shrink:0; transition:.16s;}
+  .wa:active{transform:scale(.96);}
+
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>שורש <span class="leaf">🌱</span></h1>
+  <p>מוקאפ אינטראקטיבי. החליפו בין תצוגת <b>נותן</b> (גולש בצרכים) לתצוגת <b>מתיישב</b> (מפרסם וסוגר סטטוס). לחצו על כרטיסים, "אני רוצה לעזור", וסמנו סטטוסים כדי לראות את הזרימה.</p>
+</div>
+
+<div class="roleswitch">
+  <button id="rHelper" class="on" onclick="setRole('helper')">👥 אני רוצה לעזור</button>
+  <button id="rSettler" onclick="setRole('settler')">🌾 אני מתיישב</button>
+</div>
+
+<div class="phone">
+  <div class="notch"></div>
+
+  <div class="apphead">
+    <div class="brand"><span class="spr">🌱</span> שורש</div>
+    <div class="sub" id="headsub">צרכים פתוחים בגולן, בגליל, בנגב ובהר</div>
+    <div class="pulse"><span class="dot"></span> <span>נסגרו החודש</span> <b>37</b> <span>צרכים · תודה לכל מי שנתן יד</span></div>
+  </div>
+
+  <div class="screen" id="screen"></div>
+
+  <!-- detail overlay -->
+  <div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()">
+    <div class="sheet" id="sheet"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="nav" id="nav"></div>
+</div>
+
+<script>
+/* ---------- data ---------- */
+let role='helper';
+let tab='feed';
+let filter='all';
+
+const TYPES={
+  obj:{label:'חפץ',cls:'obj',ic:'📦',tp:'חפץ / ציוד'},
+  trans:{label:'שינוע',cls:'trans',ic:'🚚',tp:'שינוע / הובלה'},
+  time:{label:'זמן',cls:'time',ic:'🖐️',tp:'זמן / עבודה'}
+};
+
+let needs=[
+  {id:1,farm:'חוות הבשור',emoji:'🐐',loc:'נגב · ליד צאלים',type:'obj',title:'200 מ׳ רשת גדר לדיר העזים',desc:'הגדר הישנה קרסה בסופה. צריך רשת מגולוונת בגובה 1.2 מ׳ כדי להחזיק את העדר בפנים.',status:0,phone:'050-1234567',ver:true},
+  {id:2,farm:'משק הרים',emoji:'💧',loc:'גליל · הר מירון',type:'trans',title:'הובלת מיכל מים 1000 ליטר מב״ש',desc:'קניתי מיכל בבאר שבע וצריך מישהו עם טנדר/נגרר שיעלה אותו אליי לחווה. כל תיאום מתאים.',status:0,phone:'052-7654321',ver:true},
+  {id:3,farm:'חוות רועי',emoji:'🌳',loc:'בקעה · ליד רימונים',type:'time',title:'3 ידיים ליום גיזום מטע',desc:'יום עבודה אחד בשמש עם הרבה לב. ארוחת צהריים ביתית עלינו. כל אחד שיודע להחזיק מזמרה מוזמן.',status:1,phone:'054-1112233',ver:true},
+  {id:4,farm:'חוות רמת מגשימים',emoji:'🐑',loc:'גולן · דרום הרמה',type:'obj',title:'15 שקי מספוא לחורף',desc:'העדר גדל השנה ואנחנו קצת מתקשים לגמור את החודש עם המזון. כל שק עוזר.',status:0,phone:'050-9988776',ver:true},
+  {id:5,farm:'חוות תמר',emoji:'🍇',loc:'נגב · ערבה צפונית',type:'trans',title:'טרמפ לשתילים ממשתלה בערד',edesc:'',desc:'הזמנו 60 שתילי גפן ואין לנו איך להביא אותם. מישהו שעובר באזור ערד השבוע?',status:0,phone:'053-4455667',ver:true}
+];
+
+let successes=[
+  {farm:'חוות אלון',title:'הרשת שנתרמה — הותקנה סביב הלול',giver:'משפחת לוי, מודיעין',type:'obj',cheers:24},
+  {farm:'חוות אודם',title:'טרקטור קטן הגיע לגולן אחרי 3 שעות נסיעה',giver:'דני, נהג מתנדב מרמת גן',type:'trans',cheers:41},
+  {farm:'חוות שקד',title:'12 מתנדבים באו לקטיף — הכל נאסף ביום אחד',giver:'קבוצת "ידיים לצפון"',type:'time',cheers:58}
+];
+
+/* ---------- render ---------- */
+function render(){
+  const s=document.getElementById('screen');
+  if(role==='helper'){
+    if(tab==='feed') s.innerHTML=feedView();
+    else if(tab==='success') s.innerHTML=successView();
+    else if(tab==='support') s.innerHTML=supportView();
+    else s.innerHTML=aboutView();
+  }else{
+    if(tab==='my') s.innerHTML=myView();
+    else if(tab==='success') s.innerHTML=successView();
+    else if(tab==='post') s.innerHTML=postView();
+    else s.innerHTML=myView();
+  }
+  renderNav();
+}
+
+function feedView(){
+  const cats=[['all','הכל'],['obj','📦 חפץ'],['trans','🚚 שינוע'],['time','🖐️ זמן']];
+  let f=`<div class="filters">`+cats.map(c=>`<div class="chip ${filter===c[0]?'on':''}" onclick="setFilter('${c[0]}')">${c[1]}</div>`).join('')+`</div>`;
+  const list=needs.filter(n=>n.status<3 && (filter==='all'||n.type===filter));
+  if(!list.length) return f+`<div class="empty"><span class="em">🌾</span>אין צרכים פתוחים בקטגוריה הזו כרגע.</div>`;
+  return f+list.map(n=>needCard(n)).join('');
+}
+
+function needCard(n){
+  const t=TYPES[n.type];
+  const statusTxt=n.status===1?'<span style="color:var(--wheat);font-weight:700">· מישהו כבר התחייב</span>':'';
+  return `<div class="card" onclick="openNeed(${n.id})">
+    <div class="top">
+      <div class="farm"><div class="avatar">${n.emoji}</div>
+        <div><div class="name">${n.farm}</div><div class="loc">📍 ${n.loc}</div></div>
+      </div>
+      <div class="tag ${t.cls}">${t.ic} ${t.label}</div>
+    </div>
+    <h3>${n.title}</h3>
+    <div class="desc">${n.desc}</div>
+    <div class="foot"><span class="verified">✓ חווה מאומתת</span> · <span>פורסם לפני יומיים</span> ${statusTxt}</div>
+  </div>`;
+}
+
+function successView(){
+  return `<div class="myhead" style="margin-bottom:12px">🎉 מעגלים שנסגרו</div>`+
+  successes.map(x=>{
+    const t=TYPES[x.type];
+    return `<div class="succard">
+      <div class="win"><div class="check">✓</div> ${x.farm} — נמסר!</div>
+      <div class="body">${x.title}</div>
+      <div class="giver">${t.ic} נתן: ${x.giver}</div>
+      <div class="heart">❤️ ${x.cheers} אנשים שמחו יחד</div>
+    </div>`;
+  }).join('');
+}
+
+function aboutView(){
+  return `<div class="empty" style="text-align:right;padding:20px 4px">
+    <div class="myhead">איך שורש עובד</div>
+    <p style="margin:14px 0;line-height:1.7">מתיישבים באזורי הספר מפרסמים <b>צרכים אמיתיים</b> — חפץ, שינוע או זמן. אתם בוחרים למה להתחבר, יוצרים קשר ישיר, ומסדרים ביניכם.</p>
+    <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px;text-align:right">
+      <div style="font-weight:800;color:var(--olive-deep);margin-bottom:8px">3 דרכים לתת יד:</div>
+      <div style="font-size:13px;line-height:2">📦 <b>חפץ</b> — תרומת ציוד או מוצר<br>🚚 <b>שינוע</b> — נוסעים ממילא? קחו משהו בדרך<br>🖐️ <b>זמן</b> — בואו לעבוד יום בשטח</div>
+    </div>
+    <p style="margin-top:14px;font-size:12.5px;color:var(--ink-soft)">כל חווה עוברת אימות ידני לפני שהיא עולה. אתם רואים רק צרכים אמיתיים.</p>
+  </div>`;
+}
+
+function myView(){
+  const mine=needs.filter(n=>[1,3].includes(n.id)); // demo: settler owns these
+  let head=`<div class="myhead">הצרכים שלי</div><p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px">עקוב אחרי הסטטוס וסמן כשמשהו מתקדם.</p>`;
+  return head+mine.map(n=>myCard(n)).join('')+
+    `<div style="margin-top:6px"><button class="btn olive" onclick="go('post')">+ פרסום צורך חדש</button></div>`;
+}
+
+function myCard(n){
+  const t=TYPES[n.type];
+  const steps=['פורסם','התחייב','נמסר'];
+  const thread=`<div class="thread">`+steps.map((st,i)=>{
+    let cls=i<n.status?'done':(i===n.status?'active':'');
+    if(n.status>=2&&i<=2) cls=i<n.status?'done':(i===n.status?'active':'');
+    return `<div class="step ${cls}">${i>0?'<span class="line"></span>':''}<div class="b">${i<n.status?'✓':i+1}</div><div class="l">${st}</div></div>`;
+  }).join('')+`</div>`;
+
+  let action='';
+  if(n.status===0) action=`<button class="btn ghost" onclick="advance(${n.id})">סמן: מישהו התחייב</button>`;
+  else if(n.status===1) action=`<button class="btn primary" onclick="advance(${n.id})">סמן: נמסר ✓</button>`;
+  else action=`<div style="text-align:center;color:var(--delivered);font-weight:800;padding:10px;font-size:14px">🎉 נסגר בהצלחה — תודה!</div>`;
+
+  return `<div class="card" style="cursor:default">
+    <div class="top">
+      <div class="farm"><div class="avatar">${n.emoji}</div><div><div class="name">${n.title}</div><div class="loc">${t.ic} ${t.tp}</div></div></div>
+    </div>
+    ${thread}
+    ${action}
+  </div>`;
+}
+
+let draftType='obj';
+function postView(){
+  return `<div class="myhead">פרסום צורך חדש</div>
+  <p style="font-size:12.5px;color:var(--ink-soft);margin:4px 0 6px">כמה שדות, וזהו. ככל שתהיה ספציפי — כך קל יותר לעזור.</p>
+  <div class="form">
+    <label>איזה סוג עזרה?</label>
+    <div class="typepick">
+      ${Object.entries(TYPES).map(([k,v])=>`<div class="tp ${draftType===k?'on':''}" onclick="setDraft('${k}')"><span class="ic">${v.ic}</span><span class="nm">${v.label}</span></div>`).join('')}
+    </div>
+    <label>מה צריך?</label>
+    <input placeholder="לדוגמה: 200 מ׳ רשת גדר מגולוונת">
+    <label>פרטים (מתי, כמה, איפה בדיוק)</label>
+    <textarea rows="3" placeholder="ספר בכמה מילים — זה מה שגורם לאנשים להתחבר."></textarea>
+    <label>תמונה (רשות)</label>
+    <div style="border:1.5px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--ink-soft);font-size:13px">📷 הוסף תמונה</div>
+    <button class="btn primary" style="margin-top:18px" onclick="publish()">פרסם צורך</button>
+  </div>`;
+}
+
+/* ---- sponsors (server-driven: config.json in production) ---- */
+const SPONSORS=[
+  {name:'גדרות הגליל',logo:'🔩',line:'תרמו 400 מ׳ רשת ל-3 חוות',tier:'ראשי'},
+  {name:'מספוא העמק',logo:'🌾',line:'שק מספוא לכל חווה מצטרפת',tier:'שותף'},
+  {name:'טרנס נגב הובלות',logo:'🚚',line:'הובלה חינם פעם בחודש',tier:'שותף'}
+];
+function supportView(){
+  return `
+  <div class="sup-hero">
+    <div class="halo">🤝</div>
+    <h2>מי מחזיק את שורש</h2>
+    <p>שורש חינמי למתיישבים ולנותנים — תמיד. הוא נשאר באוויר בזכות עסקים שבחרו לתמוך בהתיישבות, לא בזכות פרסומות.</p>
+  </div>
+
+  <div style="font-weight:800;font-size:14.5px;margin:18px 2px 11px">נותני החסות שלנו</div>
+  ${SPONSORS.map(sp=>`
+    <div class="sponsor">
+      <div class="slogo">${sp.logo}</div>
+      <div class="sbody">
+        <div class="snm">${sp.name} <span class="stier">${sp.tier}</span></div>
+        <div class="sln">${sp.line}</div>
+      </div>
+    </div>`).join('')}
+
+  <div class="joinbox">
+    <div class="jh">🌾 רוצים לתמוך בהתיישבות?</div>
+    <div class="jt">עסקים שתומכים בשורש מגיעים ישירות לחוות בגולן, בגליל, בנגב ובהר — ומקבלים קרדיט על כל מעגל שנסגר בזכותם.</div>
+    <button class="btn primary" style="margin-top:12px" onclick="sponsorCta()">דברו איתנו על חסות</button>
+  </div>
+
+  <div class="trust" style="margin-top:18px">💛 בלי פרסומות · בלי תשלום מהמשתמשים · לעולם</div>
+
+  <div class="builder">
+    <img src="hazani-logo.png" alt="משק חזני — IoT &amp; Systems">
+    <div class="bmid">
+      <div class="bcap">פותח ונבנה על ידי</div>
+      <div class="bsub">מערכות חכמות, IoT ופיתוח</div>
+    </div>
+    <a class="wa" href="https://wa.me/972542566722?text=%D7%94%D7%99%D7%99%2C%20%D7%A8%D7%90%D7%99%D7%AA%D7%99%20%D7%90%D7%AA%20%D7%A9%D7%95%D7%A8%D7%A9%20%D7%95%D7%A8%D7%A6%D7%99%D7%AA%D7%99%20%D7%9C%D7%A9%D7%9E%D7%95%D7%A2%20%D7%A2%D7%95%D7%93" target="_blank" rel="noopener">💬 וואטסאפ</a>
+  </div>`;
+}
+
+function sponsorCta(){ toast('נשמח לדבר 🌱 נציג ייצור קשר'); }
+
+/* ---------- nav ---------- */
+function renderNav(){
+  const nav=document.getElementById('nav');
+  if(role==='helper'){
+    nav.innerHTML=navBtn('feed','🏠','צרכים')+navBtn('success','🎉','הצלחות')+navBtn('support','🤝','חסות');
+  }else{
+    nav.innerHTML=navBtn('my','📋','הצרכים שלי')
+      +`<button class="fab" onclick="go('post')"><span class="ni">+</span></button>`
+      +navBtn('success','🎉','הצלחות');
+  }
+}
+function navBtn(id,ic,label){
+  return `<button class="${tab===id?'on':''}" onclick="go('${id}')"><span class="ni">${ic}</span>${label}</button>`;
+}
+
+/* ---------- actions ---------- */
+function setRole(r){
+  role=r;
+  document.getElementById('rHelper').classList.toggle('on',r==='helper');
+  document.getElementById('rSettler').classList.toggle('on',r==='settler');
+  document.getElementById('headsub').textContent = r==='helper'?'צרכים פתוחים בגולן, בגליל, בנגב ובהר':'שלום 👋 מה החווה שלך צריכה היום?';
+  tab = r==='helper'?'feed':'my';
+  render();
+}
+function go(t){ tab=t; render(); }
+function setFilter(f){ filter=f; render(); }
+function setDraft(t){ draftType=t; render(); }
+
+function openNeed(id){
+  const n=needs.find(x=>x.id===id); const t=TYPES[n.type];
+  document.getElementById('sheet').innerHTML=`
+    <div class="grab"></div>
+    <div class="top" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="farm"><div class="avatar" style="width:44px;height:44px;font-size:22px">${n.emoji}</div>
+        <div><div class="name" style="font-size:16px">${n.farm}</div><div class="loc">📍 ${n.loc} · <span style="color:var(--olive);font-weight:700">✓ מאומתת</span></div></div></div>
+      <div class="tag ${t.cls}">${t.ic} ${t.label}</div>
+    </div>
+    <div class="big">${n.title}</div>
+    <div class="desc" style="font-size:13.5px;color:var(--ink-soft);line-height:1.6">${n.desc}</div>
+    <div class="infoline">🎯 <span>סוג עזרה: <b>${t.tp}</b></span></div>
+    <div class="infoline">🕓 <span>פורסם לפני יומיים · <b>עדיין פתוח</b></span></div>
+    <button class="btn primary" id="helpBtn" onclick="reveal(${n.id})">אני רוצה לעזור בזה</button>
+    <div class="contactbox" id="cbox">
+      <div class="t">✓ מעולה! צרו קשר ישיר עם ${n.farm}</div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">סכמו ביניכם את הפרטים. כשזה יגיע — המתיישב יסמן "נמסר" וזה יופיע בהצלחות.</div>
+      <div class="contactrow">
+        <a href="tel:${n.phone}">📞 ${n.phone}</a>
+        <a href="#">💬 שלח הודעה</a>
+      </div>
+    </div>
+    <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
+  document.getElementById('overlay').classList.add('open');
+}
+function reveal(id){
+  document.getElementById('cbox').classList.add('show');
+  document.getElementById('helpBtn').classList.add('hide');
+  const n=needs.find(x=>x.id===id);
+  if(n.status===0) n.status=1;
+  toast('נפתח קשר · '+n.farm+' יראה שמתעניינים 🌱');
+}
+
+function closeSheet(){ document.getElementById('overlay').classList.remove('open'); if(role==='helper')render(); }
+
+function advance(id){
+  const n=needs.find(x=>x.id===id);
+  n.status++;
+  if(n.status>=2){
+    successes.unshift({farm:n.farm,title:n.title+' — נמסר ליעד',giver:'תורם מהקהילה',type:n.type,cheers:1});
+    toast('🎉 מזל טוב! הצורך נסגר ועלה להצלחות');
+  }else{
+    toast('הסטטוס עודכן ✓');
+  }
+  render();
+}
+
+function publish(){
+  toast('נשלח לאישור 🌱 יעלה לפיד אחרי אימות');
+  setTimeout(()=>go('my'),700);
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+render();
+</script>
+</body>
+</html>

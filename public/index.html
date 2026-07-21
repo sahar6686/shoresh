@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>שורש 🌱 — נותנים יד למתיישבי הספר</title>
+<meta name="description" content="שורש מחבר בין מתיישבי חוות בגולן, בגליל, בנגב ובהר לבין אנשים שרוצים לתת יד — חפץ, שינוע או זמן.">
+<link rel="icon" type="image/png" href="hazani-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Assistant:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEECE0; --card:#FBFAF4; --ink:#23221C; --ink-soft:#6E6C5D;
+    --olive:#4C5A31; --olive-deep:#374420; --wheat:#CF9526; --wheat-soft:#F1DEAB;
+    --clay:#B0603A; --clay-soft:#EBCFBF; --sage:#DFE4CF; --delivered:#5C7A3F;
+    --line:#D9D6C4; --shadow:0 8px 30px rgba(40,42,24,.10);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:'Assistant',sans-serif; color:var(--ink); background:var(--paper);
+    display:flex; justify-content:center;
+  }
+  .app{
+    width:100%; max-width:480px; min-height:100dvh; background:var(--paper);
+    display:flex; flex-direction:column; position:relative; overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+
+  /* header */
+  .apphead{
+    padding:calc(16px + env(safe-area-inset-top)) 20px 14px;
+    background:linear-gradient(180deg,var(--olive) 0%, var(--olive-deep) 100%);
+    color:#F7F4E9; flex-shrink:0;
+  }
+  .apphead .brand{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:23px; display:flex; align-items:center; gap:7px;}
+  .apphead .brand .spr{color:var(--wheat-soft);}
+  .apphead .sub{font-size:12px; opacity:.82; margin-top:2px; font-weight:500;}
+  .pulse{
+    margin-top:12px; background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.18);
+    border-radius:14px; padding:9px 12px; font-size:12.5px; display:flex; align-items:center; gap:8px; font-weight:600;
+  }
+  .pulse b{color:var(--wheat-soft); font-size:15px;}
+  .dot{width:7px; height:7px; border-radius:50%; background:#8FCB6E; box-shadow:0 0 0 0 rgba(143,203,110,.7); animation:p 2s infinite; flex-shrink:0;}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(143,203,110,.6);}70%{box-shadow:0 0 0 7px rgba(143,203,110,0);}100%{box-shadow:0 0 0 0 rgba(143,203,110,0);}}
+
+  /* scroll body */
+  .screen{flex:1; overflow-y:auto; padding:16px 16px 96px; -webkit-overflow-scrolling:touch;}
+
+  /* filters */
+  .filters{display:flex; gap:7px; overflow-x:auto; padding-bottom:4px; margin-bottom:8px; scrollbar-width:none;}
+  .filters::-webkit-scrollbar{display:none;}
+  .chip{
+    flex-shrink:0; border:1.5px solid var(--line); background:var(--card); color:var(--ink-soft);
+    font-family:'Assistant'; font-weight:600; font-size:12.5px; padding:6px 13px; border-radius:100px; cursor:pointer; transition:.18s;
+  }
+  .chip.on{background:var(--olive); border-color:var(--olive); color:#F7F4E9;}
+
+  /* need card */
+  .card{
+    background:var(--card); border-radius:18px; padding:15px; margin-bottom:12px;
+    border:1px solid var(--line); box-shadow:0 3px 10px rgba(40,42,24,.05); cursor:pointer; transition:.18s;
+  }
+  .card:active{transform:scale(.985);}
+  .card .top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:9px;}
+  .farm{display:flex; align-items:center; gap:9px;}
+  .avatar{width:38px; height:38px; border-radius:12px; background:var(--sage); display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0;}
+  .farm .name{font-weight:700; font-size:14.5px; line-height:1.1;}
+  .farm .loc{font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+  .tag{font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; white-space:nowrap;}
+  .tag.obj{background:#E3E8D2; color:var(--olive-deep);}
+  .tag.trans{background:var(--wheat-soft); color:#8A6410;}
+  .tag.time{background:var(--clay-soft); color:#8A3F1E;}
+  .card h3{font-weight:700; font-size:15.5px; margin-bottom:5px; line-height:1.3;}
+  .card .desc{font-size:12.8px; color:var(--ink-soft); line-height:1.5;}
+  .card .foot{display:flex; align-items:center; gap:6px; margin-top:11px; font-size:11.5px; color:var(--ink-soft); flex-wrap:wrap;}
+  .verified{color:var(--olive); font-weight:700; display:flex; align-items:center; gap:3px;}
+
+  /* buttons */
+  .btn{
+    width:100%; border:0; font-family:'Assistant'; font-weight:700; font-size:15px; padding:14px;
+    border-radius:14px; cursor:pointer; transition:.18s; margin-top:8px;
+  }
+  .btn.primary{background:linear-gradient(180deg,#DDA436,#CF9526); color:#3a2a05; box-shadow:0 5px 16px rgba(207,149,38,.38);}
+  .btn.primary:active{transform:translateY(1px); box-shadow:0 3px 10px rgba(207,149,38,.3);}
+  .btn.primary:disabled{opacity:.55; cursor:wait; box-shadow:none;}
+  .btn.olive{background:var(--olive); color:#F7F4E9;}
+  .btn.ghost{background:transparent; border:1.5px solid var(--line); color:var(--ink);}
+
+  /* detail sheet */
+  .overlay{position:absolute; inset:0; background:rgba(30,30,20,.45); z-index:50; display:none; align-items:flex-end;}
+  .overlay.open{display:flex;}
+  .sheet{background:var(--paper); width:100%; border-radius:26px 26px 0 0; padding:8px 18px calc(26px + env(safe-area-inset-bottom)); max-height:92%; overflow-y:auto; animation:up .3s;}
+  @keyframes up{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  @keyframes pop{0%{transform:scale(.6);}100%{transform:scale(1);}}
+  .grab{width:42px; height:5px; background:var(--line); border-radius:3px; margin:8px auto 16px;}
+  .sheet .big{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:22px; line-height:1.25; margin:6px 0 4px;}
+  .infoline{display:flex; gap:8px; align-items:center; font-size:13px; color:var(--ink-soft); margin:9px 0; padding:11px 13px; background:var(--card); border-radius:12px; border:1px solid var(--line);}
+  .infoline b{color:var(--ink);}
+  .contactbox{background:#E9EED9; border:1px dashed var(--olive); border-radius:14px; padding:14px; margin-top:12px; display:none;}
+  .contactbox.show{display:block; animation:pop .35s;}
+  .contactbox .t{font-weight:800; color:var(--olive-deep); font-size:14px; margin-bottom:8px; display:flex; gap:6px; align-items:center;}
+  .contactrow{display:flex; gap:8px;}
+  .contactrow a{flex:1; text-align:center; text-decoration:none; background:var(--card); border:1px solid var(--line); border-radius:11px; padding:10px; font-weight:700; font-size:13px; color:var(--olive-deep);}
+
+  /* offer form */
+  .form label{display:block; font-weight:700; font-size:13.5px; margin:13px 0 6px;}
+  .form input,.form textarea{
+    width:100%; border:1.5px solid var(--line); background:var(--card); border-radius:12px;
+    padding:12px; font-family:'Assistant'; font-size:14px; color:var(--ink); resize:none;
+  }
+  .form input:focus,.form textarea:focus{outline:none; border-color:var(--olive);}
+  .formerr{color:#a33; font-size:12.5px; font-weight:600; margin-top:8px; display:none;}
+  .formerr.show{display:block;}
+
+  /* success feed */
+  .myhead{font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:19px; margin-bottom:4px;}
+  .succard{
+    background:linear-gradient(140deg,#F5F1E4, #EDF1DF); border:1px solid #CBD3B3; border-radius:18px;
+    padding:15px; margin-bottom:12px; position:relative; overflow:hidden;
+  }
+  .succard::before{content:""; position:absolute; top:-20px; left:-20px; width:70px; height:70px; background:radial-gradient(circle,rgba(207,149,38,.25),transparent 70%);}
+  .succard .win{display:flex; align-items:center; gap:8px; font-weight:800; color:var(--olive-deep); font-size:14px; margin-bottom:7px;}
+  .check{width:24px; height:24px; border-radius:50%; background:var(--delivered); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0;}
+  .succard .body{font-size:13px; color:#4a4a38; line-height:1.5;}
+  .succard .when{margin-top:9px; font-size:12px; color:var(--olive); font-weight:700;}
+
+  /* status thread (settler) */
+  .thread{display:flex; align-items:center; gap:0; margin-top:12px;}
+  .step{flex:1; text-align:center; position:relative;}
+  .step .b{width:22px; height:22px; border-radius:50%; margin:0 auto 4px; background:#E5E2D2; border:2px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--ink-soft);}
+  .step.done .b{background:var(--olive); border-color:var(--olive); color:#fff;}
+  .step.active .b{background:var(--wheat); border-color:var(--wheat); color:#fff;}
+  .step .l{font-size:10px; font-weight:600; color:var(--ink-soft);}
+  .step.done .l,.step.active .l{color:var(--ink);}
+  .step .line{position:absolute; top:11px; right:-50%; width:100%; height:2px; background:var(--line); z-index:-1;}
+  .step.done .line{background:var(--olive);}
+
+  /* settler forms */
+  .typepick{display:flex; gap:8px;}
+  .typepick .tp{flex:1; border:1.5px solid var(--line); background:var(--card); border-radius:13px; padding:12px 6px; text-align:center; cursor:pointer; transition:.18s;}
+  .typepick .tp .ic{font-size:22px; display:block; margin-bottom:4px;}
+  .typepick .tp .nm{font-size:12px; font-weight:700; color:var(--ink-soft);}
+  .typepick .tp.on{border-color:var(--olive); background:#EAEFDB;}
+  .typepick .tp.on .nm{color:var(--olive-deep);}
+  .form select{
+    width:100%; border:1.5px solid var(--line); background:var(--card); border-radius:12px;
+    padding:12px; font-family:'Assistant'; font-size:14px; color:var(--ink);
+  }
+  .emojirow{display:flex; gap:6px; flex-wrap:wrap;}
+  .emojirow .echip{width:44px; height:44px; border:1.5px solid var(--line); background:var(--card); border-radius:12px; font-size:22px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .emojirow .echip.on{border-color:var(--olive); background:#EAEFDB;}
+  .banner{border-radius:14px; padding:12px 14px; font-size:13px; font-weight:600; line-height:1.5; margin-bottom:12px;}
+  .banner.wait{background:var(--wheat-soft); color:#8A6410; border:1px solid #E3C87E;}
+  .banner.ok{background:#E9EED9; color:var(--olive-deep); border:1px solid #CBD3B3;}
+  .offerline{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:8px; font-size:13px;}
+  .offerline b{color:var(--olive-deep);}
+  .offerline a{color:var(--olive-deep); font-weight:700; text-decoration:none;}
+  .linkbtn{background:none; border:0; color:var(--ink-soft); font-family:'Assistant'; font-weight:600; font-size:12px; cursor:pointer; text-decoration:underline; margin-top:14px;}
+
+  /* states */
+  .empty{text-align:center; color:var(--ink-soft); padding:40px 20px; font-size:13.5px; line-height:1.6;}
+  .empty .em{font-size:40px; display:block; margin-bottom:10px;}
+  .skel{background:var(--card); border:1px solid var(--line); border-radius:18px; height:118px; margin-bottom:12px; position:relative; overflow:hidden;}
+  .skel::after{content:""; position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent); animation:sh 1.2s infinite;}
+  @keyframes sh{from{transform:translateX(100%);}to{transform:translateX(-100%);}}
+
+  /* support screen */
+  .sup-hero{
+    background:linear-gradient(150deg,#EFE6D0,#E6ECD6); border:1px solid #D3D8BE;
+    border-radius:20px; padding:18px; text-align:center; position:relative; overflow:hidden;
+  }
+  .sup-hero::after{content:"🌱"; position:absolute; font-size:90px; opacity:.07; bottom:-18px; left:-8px; transform:rotate(-12deg);}
+  .sup-hero .halo{width:56px; height:56px; border-radius:50%; background:radial-gradient(circle,#F3DFA6,#E9C877); display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 8px; box-shadow:0 4px 16px rgba(207,149,38,.35);}
+  .sup-hero h2{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:20px; color:var(--olive-deep); line-height:1.25;}
+  .sup-hero p{font-size:12.5px; color:#5c5a48; margin-top:5px; line-height:1.55;}
+  .trust{display:flex; align-items:center; justify-content:center; gap:6px; font-size:11px; color:var(--ink-soft); margin-top:12px;}
+  .sponsor{display:flex; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line);
+    border-radius:16px; padding:13px 14px; margin-bottom:10px;}
+  .slogo{width:44px; height:44px; border-radius:13px; background:var(--sage); display:flex; align-items:center;
+    justify-content:center; font-size:22px; flex-shrink:0; overflow:hidden;}
+  .slogo img{width:100%; height:100%; object-fit:contain;}
+  .snm{font-weight:800; font-size:14.5px; display:flex; align-items:center; gap:7px;}
+  .stier{font-size:9.5px; font-weight:800; background:var(--wheat-soft); color:#8A6410; padding:2px 8px; border-radius:100px;}
+  .sln{font-size:12.5px; color:var(--ink-soft); margin-top:2px; line-height:1.45;}
+  .joinbox{background:linear-gradient(140deg,#EFE6D0,#E6ECD6); border:1px solid #D3D8BE; border-radius:18px;
+    padding:17px; margin-top:16px; text-align:center;}
+  .jh{font-family:'Frank Ruhl Libre',serif; font-weight:900; font-size:17px; color:var(--olive-deep);}
+  .jt{font-size:12.5px; color:#5c5a48; margin-top:6px; line-height:1.55;}
+  .builder{background:#fff; border:1px solid var(--line); border-radius:13px; padding:9px 11px;
+    margin-top:12px; display:flex; align-items:center; gap:10px;}
+  .builder img{width:64px; height:auto; flex-shrink:0;}
+  .bmid{flex:1; min-width:0; line-height:1.3;}
+  .bcap{font-size:9px; color:var(--ink-soft); font-weight:700; letter-spacing:.3px;}
+  .bsub{font-size:10.5px; color:var(--ink-soft);}
+  .wa{background:#25D366; color:#fff; border:0; border-radius:9px; padding:7px 11px; font-family:'Assistant';
+    font-weight:800; font-size:11.5px; cursor:pointer; display:inline-flex; align-items:center; gap:4px;
+    text-decoration:none; flex-shrink:0; transition:.16s;}
+  .wa:active{transform:scale(.96);}
+
+  /* bottom nav */
+  .nav{
+    position:absolute; bottom:0; right:0; left:0; height:calc(72px + env(safe-area-inset-bottom)); background:var(--card);
+    border-top:1px solid var(--line); display:flex; padding-bottom:calc(6px + env(safe-area-inset-bottom)); z-index:30;
+  }
+  .nav button{flex:1; border:0; background:transparent; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; color:var(--ink-soft); font-family:'Assistant'; font-weight:600; font-size:10.5px;}
+  .nav button .ni{font-size:20px; opacity:.7; transition:.18s;}
+  .nav button.on{color:var(--olive-deep);}
+  .nav button.on .ni{opacity:1; transform:translateY(-1px);}
+
+  .toast{
+    position:absolute; bottom:88px; left:50%; transform:translateX(-50%) translateY(20px); z-index:60;
+    background:var(--olive-deep); color:#F7F4E9; padding:11px 18px; border-radius:100px; font-size:13px; font-weight:600;
+    opacity:0; transition:.3s; white-space:nowrap; box-shadow:0 6px 20px rgba(0,0,0,.25); pointer-events:none;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .hide{display:none!important;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="apphead">
+    <div class="brand"><span class="spr">🌱</span> שורש</div>
+    <div class="sub">צרכים פתוחים בגולן, בגליל, בנגב ובהר</div>
+    <div class="pulse hide" id="pulse"><span class="dot"></span> <span id="pulseTxt"></span></div>
+  </div>
+
+  <div class="screen" id="screen"></div>
+
+  <div class="overlay" id="overlay">
+    <div class="sheet" id="sheet"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="nav" id="nav"></div>
+</div>
+
+<script src="env.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.7/dist/umd/supabase.min.js"
+        integrity="sha384-BmlQlKlDvXvKoxkn5OQuUo/aJQCTXeB+Kls6EccBmG4Kf8AXvp89RtO9MtPxP/r5"
+        crossorigin="anonymous"></script>
+<script>
+'use strict';
+
+/* ---------- הגדרות ---------- */
+const TYPES={
+  object:   {label:'חפץ',  cls:'obj',   ic:'📦', tp:'חפץ / ציוד'},
+  transport:{label:'שינוע',cls:'trans', ic:'🚚', tp:'שינוע / הובלה'},
+  time:     {label:'זמן',  cls:'time',  ic:'🖐️', tp:'זמן / עבודה'}
+};
+const PHONE_RE=/^0\d{1,2}-?\d{7}$/;
+
+let sb=null;              // Supabase client
+let CFG={};               // config.json
+let tab='feed';
+let typeFilter='all';
+let regionFilter='all';
+let needsCache=null;      // null = טרם נטען
+let successCache=null;
+let loadError=false;
+
+/* מצב צד מתיישב */
+let session=null;
+let myFarm;               // undefined = טרם נטען, null = אין חווה
+let myNeeds=null;
+let myOffers={};          // need_id -> offers[]
+let draftType='object';
+let draftEmoji='🌾';
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- אתחול ---------- */
+async function boot(){
+  renderNav();
+  if(!window.SUPABASE_URL || !window.SUPABASE_ANON_KEY){
+    $('screen').innerHTML=`<div class="empty"><span class="em">🛠️</span>
+      <b>האתר עדיין לא חובר לשרת.</b><br>
+      חסר קובץ <code>env.js</code> עם פרטי Supabase.<br>
+      ראה הוראות ב-README של הפרויקט.</div>`;
+    return;
+  }
+  sb=supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+  // צד מתיישב — מעקב התחברות (Magic Link חוזר לדף עם session)
+  const {data:{session:s0}}=await sb.auth.getSession();
+  session=s0;
+  sb.auth.onAuthStateChange((_ev,s)=>{
+    session=s; myFarm=undefined; myNeeds=null; myOffers={};
+    if(tab==='settler'){ render(); loadSettler(); }
+  });
+
+  // config.json — כשל בטעינה לא מפיל את האתר
+  try{
+    const r=await fetch('config.json',{cache:'no-store'});
+    if(r.ok) CFG=await r.json();
+  }catch(e){ CFG={}; }
+
+  render();
+  await refreshData();
+}
+
+async function refreshData(){
+  loadError=false;
+  try{
+    const [needsRes, sucRes]=await Promise.all([
+      sb.from('feed_needs').select('*'),
+      sb.from('success_feed').select('*').limit(30)
+    ]);
+    if(needsRes.error) throw needsRes.error;
+    if(sucRes.error) throw sucRes.error;
+    needsCache=needsRes.data??[];
+    successCache=sucRes.data??[];
+    updatePulse();
+  }catch(e){
+    console.error('load failed',e);
+    loadError=true;
+  }
+  render();
+}
+
+function updatePulse(){
+  if(!successCache) return;
+  const monthStart=new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
+  const m=successCache.filter(x=>x.delivered_at && new Date(x.delivered_at)>=monthStart).length;
+  const total=successCache.length;
+  const el=$('pulse');
+  if(m>0){
+    $('pulseTxt').innerHTML=`נסגרו החודש <b>${m}</b> צרכים · תודה לכל מי שנתן יד`;
+    el.classList.remove('hide');
+  }else if(total>0){
+    $('pulseTxt').innerHTML=`<b>${total}</b> מעגלים כבר נסגרו · תודה לכל מי שנתן יד`;
+    el.classList.remove('hide');
+  }else{
+    el.classList.add('hide');
+  }
+}
+
+/* ---------- תצוגות ---------- */
+function render(){
+  const s=$('screen');
+  if(tab==='feed') s.innerHTML=feedView();
+  else if(tab==='success') s.innerHTML=successView();
+  else if(tab==='settler') s.innerHTML=settlerView();
+  else s.innerHTML=supportView();
+  renderNav();
+}
+
+function skeletons(n){ return Array.from({length:n},()=>'<div class="skel"></div>').join(''); }
+
+function errorBox(){
+  const offline=!navigator.onLine;
+  return `<div class="empty"><span class="em">${offline?'📡':'🌧️'}</span>
+    <b>${offline?'אין חיבור לאינטרנט':'לא הצלחנו לטעון את הנתונים'}</b><br>
+    ${offline?'בדוק את החיבור ונסה שוב.':'נסה שוב בעוד רגע.'}
+    <button class="btn olive" style="max-width:200px;margin:16px auto 0" onclick="retryLoad()">נסה שוב</button></div>`;
+}
+function retryLoad(){ needsCache=null; successCache=null; render(); refreshData(); }
+
+function feedView(){
+  const cats=[['all','הכל'],['object','📦 חפץ'],['transport','🚚 שינוע'],['time','🖐️ זמן']];
+  let html=`<div class="filters">`+cats.map(c=>
+    `<div class="chip ${typeFilter===c[0]?'on':''}" onclick="setTypeFilter('${c[0]}')">${c[1]}</div>`).join('')+`</div>`;
+
+  const regions=Array.isArray(CFG.regions)?CFG.regions:[];
+  if(regions.length){
+    html+=`<div class="filters">`+[`<div class="chip ${regionFilter==='all'?'on':''}" onclick="setRegionFilter('all')">כל האזורים</div>`]
+      .concat(regions.map(r=>`<div class="chip ${regionFilter===r?'on':''}" onclick="setRegionFilter('${esc(r)}')">📍 ${esc(r)}</div>`)).join('')+`</div>`;
+  }
+
+  if(loadError) return html+errorBox();
+  if(needsCache===null) return html+skeletons(4);
+
+  const list=needsCache.filter(n=>
+    (typeFilter==='all'||n.type===typeFilter) &&
+    (regionFilter==='all'||n.region===regionFilter));
+  if(!list.length) return html+`<div class="empty"><span class="em">🌾</span>אין כרגע צרכים פתוחים${typeFilter!=='all'||regionFilter!=='all'?' בסינון הזה':''}.<br>שווה להציץ שוב מחר.</div>`;
+  return html+list.map(needCard).join('');
+}
+
+function needCard(n){
+  const t=TYPES[n.type]||TYPES.object;
+  const committed=n.status==='committed'?'<span style="color:var(--wheat);font-weight:700">· מישהו כבר התחייב</span>':'';
+  return `<div class="card" onclick="openNeed('${n.id}')">
+    <div class="top">
+      <div class="farm"><div class="avatar">${esc(n.emoji)}</div>
+        <div><div class="name">${esc(n.farm_name)}</div><div class="loc">📍 ${esc(n.region)}${n.location_note?' · '+esc(n.location_note):''}</div></div>
+      </div>
+      <div class="tag ${t.cls}">${t.ic} ${t.label}</div>
+    </div>
+    <h3>${esc(n.title)}</h3>
+    <div class="desc">${esc(n.description)}</div>
+    <div class="foot"><span class="verified">✓ חווה מאומתת</span> · <span>${relTime(n.created_at)}</span> ${committed}</div>
+  </div>`;
+}
+
+function successView(){
+  let html=`<div class="myhead" style="margin-bottom:12px">🎉 מעגלים שנסגרו</div>`;
+  if(loadError) return html+errorBox();
+  if(successCache===null) return html+skeletons(3);
+  if(!successCache.length) return html+`<div class="empty"><span class="em">🌱</span>עוד לא נסגר כאן מעגל ראשון.<br>ההצלחה הראשונה בדרך — אולי בזכותך.</div>`;
+  return html+successCache.map(x=>{
+    const t=TYPES[x.type]||TYPES.object;
+    return `<div class="succard">
+      <div class="win"><div class="check">✓</div> ${esc(x.farm_name)} — נמסר!</div>
+      <div class="body">${t.ic} ${esc(x.title)}</div>
+      <div class="when">📍 ${esc(x.region)} · ${relTime(x.delivered_at)}</div>
+    </div>`;
+  }).join('');
+}
+
+function supportView(){
+  const sp=CFG.sponsors||{};
+  const items=(sp.active&&Array.isArray(sp.items))?sp.items:[];
+  const b=CFG.builder||{};
+  let html=`
+  <div class="sup-hero">
+    <div class="halo">🤝</div>
+    <h2>מי מחזיק את שורש</h2>
+    <p>שורש חינמי למתיישבים ולנותנים — תמיד. הוא נשאר באוויר בזכות עסקים שבחרו לתמוך בהתיישבות, לא בזכות פרסומות.</p>
+  </div>`;
+
+  if(items.length){
+    html+=`<div style="font-weight:800;font-size:14.5px;margin:18px 2px 11px">נותני החסות שלנו</div>`+
+    items.map(s=>`
+      <div class="sponsor">
+        <div class="slogo">${s.logo?`<img src="${esc(s.logo)}" alt="${esc(s.name)}">`:esc(s.emoji||'🌾')}</div>
+        <div>
+          <div class="snm">${esc(s.name)} ${s.tier?`<span class="stier">${esc(s.tier)}</span>`:''}</div>
+          <div class="sln">${esc(s.line||'')}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  html+=`
+  <div class="joinbox">
+    <div class="jh">🌾 רוצים לתמוך בהתיישבות?</div>
+    <div class="jt">עסקים שתומכים בשורש מגיעים ישירות לחוות בגולן, בגליל, בנגב ובהר — ומקבלים קרדיט על כל מעגל שנסגר בזכותם.</div>
+    <a class="btn primary" style="display:block;text-decoration:none;text-align:center;margin-top:12px"
+       href="https://wa.me/${esc(b.whatsapp||'')}?text=${encodeURIComponent('היי, אני מתעניין בחסות לשורש')}" target="_blank" rel="noopener">דברו איתנו על חסות</a>
+  </div>
+  <div class="trust">💛 בלי פרסומות · בלי תשלום מהמשתמשים · לעולם</div>`;
+
+  if(b.active){
+    html+=`
+    <div class="builder">
+      <img src="${esc(b.logo||'hazani-logo.png')}" alt="משק חזני — IoT &amp; Systems">
+      <div class="bmid">
+        <div class="bcap">${esc(b.caption||'פותח ונבנה על ידי')}</div>
+        <div class="bsub">${esc(b.subtitle||'')}</div>
+      </div>
+      <a class="wa" href="https://wa.me/${esc(b.whatsapp||'')}?text=${encodeURIComponent(b.whatsapp_text||'')}" target="_blank" rel="noopener">💬 וואטסאפ</a>
+    </div>`;
+  }
+  return html;
+}
+
+/* ---------- דף צורך + הצעת עזרה ---------- */
+function openNeed(id){
+  const n=(needsCache||[]).find(x=>x.id===id);
+  if(!n) return;
+  const t=TYPES[n.type]||TYPES.object;
+  $('sheet').innerHTML=`
+    <div class="grab"></div>
+    <div class="top" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="farm"><div class="avatar" style="width:44px;height:44px;font-size:22px">${esc(n.emoji)}</div>
+        <div><div class="name" style="font-size:16px">${esc(n.farm_name)}</div>
+        <div class="loc">📍 ${esc(n.region)}${n.location_note?' · '+esc(n.location_note):''} · <span style="color:var(--olive);font-weight:700">✓ מאומתת</span></div></div></div>
+      <div class="tag ${t.cls}">${t.ic} ${t.label}</div>
+    </div>
+    <div class="big">${esc(n.title)}</div>
+    <div class="desc" style="font-size:13.5px;color:var(--ink-soft);line-height:1.6">${esc(n.description)}</div>
+    <div class="infoline">🎯 <span>סוג עזרה: <b>${t.tp}</b></span></div>
+    <div class="infoline">🕓 <span>${relTime(n.created_at)} · <b>${n.status==='committed'?'מישהו כבר התחייב — אפשר להצטרף':'עדיין פתוח'}</b></span></div>
+
+    <div id="offerZone">
+      <button class="btn primary" onclick="showOfferForm()">אני רוצה לעזור בזה</button>
+    </div>
+    <div class="form hide" id="offerForm">
+      <label>השם שלך</label>
+      <input id="ofName" maxlength="60" placeholder="שם מלא">
+      <label>טלפון (כדי שהחווה תוכל לחזור אליך)</label>
+      <input id="ofPhone" maxlength="12" inputmode="tel" placeholder="050-1234567">
+      <label>הערה (רשות)</label>
+      <textarea id="ofNote" rows="2" maxlength="300" placeholder="למשל: אני עובר באזור ביום שלישי"></textarea>
+      <div class="formerr" id="ofErr"></div>
+      <button class="btn primary" id="ofSend" onclick="sendOffer('${n.id}')">שליחה וקבלת פרטי קשר</button>
+    </div>
+    <div class="contactbox" id="cbox"></div>
+    <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
+  $('overlay').classList.add('open');
+}
+
+function showOfferForm(){
+  $('offerZone').classList.add('hide');
+  $('offerForm').classList.remove('hide');
+  $('ofName').focus();
+}
+
+async function sendOffer(needId){
+  const name=$('ofName').value.trim();
+  const phone=$('ofPhone').value.trim();
+  const note=$('ofNote').value.trim();
+  const err=$('ofErr');
+  err.classList.remove('show');
+  if(name.length<2){ err.textContent='כתוב שם — ככה החווה יודעת מי מתקשר.'; err.classList.add('show'); return; }
+  if(!PHONE_RE.test(phone)){ err.textContent='מספר הטלפון לא נראה תקין (לדוגמה: 050-1234567).'; err.classList.add('show'); return; }
+
+  const btn=$('ofSend');
+  btn.disabled=true; btn.textContent='שולח…';
+  try{
+    const {data,error}=await sb.rpc('submit_offer',{p_need_id:needId,p_helper_name:name,p_helper_phone:phone,p_note:note||null});
+    if(error) throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    $('offerForm').classList.add('hide');
+    const tel=String(row.contact_phone).replace(/[^\d+]/g,'');
+    $('cbox').innerHTML=`
+      <div class="t">✓ מעולה! צרו קשר ישיר עם ${esc(row.farm_name)}</div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">סכמו ביניכם את הפרטים. כשהעזרה תגיע — המתיישב יסמן "נמסר" וזה יעלה לפיד ההצלחות.</div>
+      <div class="contactrow">
+        <a href="tel:${esc(tel)}">📞 ${esc(row.contact_phone)}</a>
+        <a href="https://wa.me/972${esc(tel.replace(/^0/,''))}" target="_blank" rel="noopener">💬 וואטסאפ</a>
+      </div>`;
+    $('cbox').classList.add('show');
+    toast('נפתח קשר · '+row.farm_name+' ישמח לשמוע ממך 🌱');
+    refreshData();
+  }catch(e){
+    console.error('offer failed',e);
+    btn.disabled=false; btn.textContent='שליחה וקבלת פרטי קשר';
+    err.textContent=navigator.onLine?'משהו השתבש בשליחה. נסה שוב.':'אין חיבור לאינטרנט — נסה שוב כשיש קליטה.';
+    err.classList.add('show');
+  }
+}
+
+function closeSheet(){ $('overlay').classList.remove('open'); }
+$('overlay').addEventListener('click',e=>{ if(e.target===$('overlay')) closeSheet(); });
+
+/* ---------- צד מתיישב (שלב 3) ---------- */
+const EMOJIS=['🌾','🐐','🐑','🐄','🍇','🌳','💧','🐝'];
+
+async function loadSettler(){
+  if(!session) return;
+  try{
+    const {data:farms,error}=await sb.from('farms').select('*').eq('owner_id',session.user.id);
+    if(error) throw error;
+    myFarm=farms&&farms.length?farms[0]:null;
+    if(myFarm){
+      const {data:needs,error:e2}=await sb.from('needs').select('*')
+        .eq('farm_id',myFarm.id).order('created_at',{ascending:false});
+      if(e2) throw e2;
+      myNeeds=needs??[];
+      myOffers={};
+      const ids=myNeeds.map(n=>n.id);
+      if(ids.length){
+        const {data:offers,error:e3}=await sb.from('offers').select('*')
+          .in('need_id',ids).order('created_at',{ascending:false});
+        if(e3) throw e3;
+        (offers??[]).forEach(o=>{ (myOffers[o.need_id]??=[]).push(o); });
+      }
+    }
+  }catch(e){
+    console.error('settler load failed',e);
+    toast('שגיאה בטעינת הנתונים — נסה שוב');
+  }
+  if(tab==='settler') render();
+}
+
+function settlerView(){
+  if(!sb) return `<div class="empty"><span class="em">🛠️</span>האתר עדיין לא חובר לשרת.</div>`;
+
+  // לא מחובר — התחברות בקישור למייל
+  if(!session) return `
+    <div class="myhead">כניסת מתיישבים 🌾</div>
+    <p style="font-size:13px;color:var(--ink-soft);margin:6px 0 4px;line-height:1.6">
+      נכנסים עם המייל — בלי סיסמה. שולחים לך קישור, לוחצים עליו, ואתה בפנים.</p>
+    <div class="form">
+      <label>המייל שלך</label>
+      <input id="lgEmail" type="email" inputmode="email" placeholder="you@example.com">
+      <div class="formerr" id="lgErr"></div>
+      <button class="btn olive" id="lgSend" onclick="sendMagicLink()">שלח לי קישור כניסה</button>
+      <div class="banner ok hide" id="lgSent" style="margin-top:12px">✉️ הקישור נשלח! פתח את המייל ולחץ עליו — הוא יחזיר אותך לכאן מחובר.</div>
+    </div>`;
+
+  // מחובר אבל טרם נטען
+  if(myFarm===undefined) return `<div class="myhead">רגע…</div>`+skeletons(2);
+
+  // אין חווה — יצירת חווה
+  if(myFarm===null){
+    const regions=Array.isArray(CFG.regions)&&CFG.regions.length?CFG.regions:['גולן','גליל','נגב','הר'];
+    return `
+    <div class="myhead">ברוך הבא! נקים את החווה שלך 🌱</div>
+    <p style="font-size:13px;color:var(--ink-soft);margin:6px 0 4px;line-height:1.6">
+      כמה פרטים ואתה בפנים. אחרי האישור — הצרכים שלך יופיעו לכולם.</p>
+    <div class="form">
+      <label>שם החווה</label>
+      <input id="fmName" maxlength="60" placeholder="לדוגמה: חוות רמת מגשימים">
+      <label>אזור</label>
+      <select id="fmRegion">${regions.map(r=>`<option>${esc(r)}</option>`).join('')}</select>
+      <label>איפה בערך? (בלי כתובת מדויקת)</label>
+      <input id="fmLoc" maxlength="60" placeholder="לדוגמה: דרום הרמה">
+      <label>טלפון (יוצג רק למי ששלח הצעת עזרה)</label>
+      <input id="fmPhone" maxlength="12" inputmode="tel" placeholder="050-1234567">
+      <label>סמל לחווה</label>
+      <div class="emojirow">${EMOJIS.map(e=>`<div class="echip ${draftEmoji===e?'on':''}" onclick="setEmoji('${e}')">${e}</div>`).join('')}</div>
+      <div class="formerr" id="fmErr"></div>
+      <button class="btn primary" id="fmSend" onclick="createFarm()">צור את החווה</button>
+      <button class="linkbtn" onclick="doSignOut()">התנתק</button>
+    </div>`;
+  }
+
+  // יש חווה — הצרכים שלי
+  let html=`<div class="myhead">${esc(myFarm.emoji)} ${esc(myFarm.name)}</div>`;
+  html+=myFarm.verified
+    ? `<div class="banner ok">✓ חווה מאומתת — הצרכים שלך מופיעים לציבור.</div>`
+    : `<div class="banner wait">🕓 החווה ממתינה לאימות. אפשר כבר לפרסם צרכים — הם יופיעו לציבור מיד אחרי האישור.</div>`;
+
+  if(myNeeds===null) html+=skeletons(2);
+  else if(!myNeeds.length) html+=`<div class="empty"><span class="em">📋</span>עוד אין צרכים.<br>פרסם את הראשון — זה לוקח חצי דקה.</div>`;
+  else html+=myNeeds.map(myNeedCard).join('');
+
+  html+=`<button class="btn olive" onclick="showPostForm()">+ פרסום צורך חדש</button>
+    <div class="form hide" id="postForm">
+      <label>איזה סוג עזרה?</label>
+      <div class="typepick">
+        ${Object.entries(TYPES).map(([k,v])=>`<div class="tp ${draftType===k?'on':''}" onclick="setDraft('${k}')"><span class="ic">${v.ic}</span><span class="nm">${v.label}</span></div>`).join('')}
+      </div>
+      <label>מה צריך?</label>
+      <input id="pnTitle" maxlength="80" placeholder="לדוגמה: 200 מ׳ רשת גדר מגולוונת">
+      <label>פרטים (מתי, כמה, איפה בדיוק)</label>
+      <textarea id="pnDesc" rows="3" maxlength="500" placeholder="ספר בכמה מילים — זה מה שגורם לאנשים להתחבר."></textarea>
+      <div class="formerr" id="pnErr"></div>
+      <button class="btn primary" id="pnSend" onclick="postNeed()">פרסם צורך</button>
+    </div>
+    <button class="linkbtn" onclick="doSignOut()">התנתק</button>`;
+  return html;
+}
+
+function myNeedCard(n){
+  const t=TYPES[n.type]||TYPES.object;
+  const stepIdx=n.status==='open'?0:(n.status==='committed'?1:2);
+  const steps=['פורסם','התחייב','נמסר'];
+  const thread=`<div class="thread">`+steps.map((st,i)=>{
+    const cls=i<stepIdx?'done':(i===stepIdx?'active':'');
+    return `<div class="step ${cls}">${i>0?'<span class="line"></span>':''}<div class="b">${i<stepIdx?'✓':i+1}</div><div class="l">${st}</div></div>`;
+  }).join('')+`</div>`;
+
+  const offers=myOffers[n.id]||[];
+  let offersHtml='';
+  if(offers.length && n.status!=='delivered'){
+    offersHtml=`<div style="font-weight:700;font-size:13px;margin-top:12px">🤝 ${offers.length===1?'הצעת עזרה אחת':offers.length+' הצעות עזרה'}:</div>`+
+      offers.map(o=>`<div class="offerline"><b>${esc(o.helper_name)}</b> · <a href="tel:${esc(o.helper_phone)}">📞 ${esc(o.helper_phone)}</a>${o.note?`<div style="color:var(--ink-soft);margin-top:3px">${esc(o.note)}</div>`:''}</div>`).join('');
+  }
+
+  let action='';
+  if(n.status==='delivered')
+    action=`<div style="text-align:center;color:var(--delivered);font-weight:800;padding:10px;font-size:14px">🎉 נסגר בהצלחה — תודה!</div>`;
+  else{
+    action=`<button class="btn primary" onclick="markDelivered('${n.id}')">סמן: נמסר ✓</button>`;
+    if(n.status==='committed')
+      action+=`<button class="btn ghost" onclick="reopenNeed('${n.id}')">העוזר נעלם? החזר לפתוח</button>`;
+  }
+
+  return `<div class="card" style="cursor:default">
+    <div class="top">
+      <div class="farm"><div class="avatar">${t.ic}</div>
+        <div><div class="name">${esc(n.title)}</div><div class="loc">${t.tp} · ${relTime(n.created_at)}</div></div></div>
+    </div>
+    ${thread}${offersHtml}${action}
+  </div>`;
+}
+
+async function sendMagicLink(){
+  const em=$('lgEmail').value.trim();
+  const err=$('lgErr'); err.classList.remove('show');
+  if(!/^\S+@\S+\.\S+$/.test(em)){ err.textContent='כתובת מייל לא תקינה.'; err.classList.add('show'); return; }
+  const btn=$('lgSend'); btn.disabled=true; btn.textContent='שולח…';
+  try{
+    const {error}=await sb.auth.signInWithOtp({email:em,
+      options:{emailRedirectTo: location.protocol==='file:'?undefined:location.origin+location.pathname}});
+    if(error) throw error;
+    $('lgSent').classList.remove('hide');
+    btn.textContent='הקישור נשלח ✓';
+  }catch(e){
+    console.error('otp failed',e);
+    btn.disabled=false; btn.textContent='שלח לי קישור כניסה';
+    err.textContent='השליחה נכשלה — נסה שוב בעוד רגע.'; err.classList.add('show');
+  }
+}
+
+function setEmoji(e){ draftEmoji=e; render(); }
+function setDraft(t){ draftType=t; const f=$('postForm'); const wasOpen=f&&!f.classList.contains('hide'); render(); if(wasOpen) showPostForm(); }
+function showPostForm(){ $('postForm').classList.remove('hide'); $('pnTitle').focus(); }
+
+async function createFarm(){
+  const name=$('fmName').value.trim();
+  const phone=$('fmPhone').value.trim();
+  const err=$('fmErr'); err.classList.remove('show');
+  if(name.length<2){ err.textContent='כתוב את שם החווה.'; err.classList.add('show'); return; }
+  if(!PHONE_RE.test(phone)){ err.textContent='מספר הטלפון לא נראה תקין (לדוגמה: 050-1234567).'; err.classList.add('show'); return; }
+  const btn=$('fmSend'); btn.disabled=true; btn.textContent='יוצר…';
+  try{
+    const {error}=await sb.from('farms').insert({
+      owner_id:session.user.id, name, region:$('fmRegion').value,
+      location_note:$('fmLoc').value.trim()||null, contact_phone:phone, emoji:draftEmoji});
+    if(error) throw error;
+    toast('החווה נוצרה 🌱 ממתינה לאימות');
+    myFarm=undefined; await loadSettler();
+  }catch(e){
+    console.error('farm create failed',e);
+    btn.disabled=false; btn.textContent='צור את החווה';
+    err.textContent='היצירה נכשלה — נסה שוב.'; err.classList.add('show');
+  }
+}
+
+async function postNeed(){
+  const title=$('pnTitle').value.trim();
+  const err=$('pnErr'); err.classList.remove('show');
+  if(title.length<3){ err.textContent='כתוב מה צריך.'; err.classList.add('show'); return; }
+  const btn=$('pnSend'); btn.disabled=true; btn.textContent='מפרסם…';
+  try{
+    const {error}=await sb.from('needs').insert({
+      farm_id:myFarm.id, type:draftType, title, description:$('pnDesc').value.trim()});
+    if(error) throw error;
+    toast(myFarm.verified?'הצורך פורסם ועלה לפיד 🌱':'הצורך נשמר — יופיע לציבור אחרי אימות החווה');
+    await loadSettler(); refreshData();
+  }catch(e){
+    console.error('post need failed',e);
+    btn.disabled=false; btn.textContent='פרסם צורך';
+    err.textContent='הפרסום נכשל — נסה שוב.'; err.classList.add('show');
+  }
+}
+
+async function markDelivered(id){
+  try{
+    const {error}=await sb.from('needs').update({status:'delivered'}).eq('id',id);
+    if(error) throw error;
+    toast('🎉 מזל טוב! הצורך נסגר ועלה להצלחות');
+    await loadSettler(); refreshData();
+  }catch(e){ console.error(e); toast('העדכון נכשל — נסה שוב'); }
+}
+
+async function reopenNeed(id){
+  try{
+    const {error}=await sb.from('needs').update({status:'open'}).eq('id',id).eq('status','committed');
+    if(error) throw error;
+    toast('הצורך חזר לפתוח');
+    await loadSettler(); refreshData();
+  }catch(e){ console.error(e); toast('העדכון נכשל — נסה שוב'); }
+}
+
+async function doSignOut(){
+  await sb.auth.signOut();
+  toast('התנתקת');
+  tab='feed'; render();
+}
+
+/* ---------- ניווט ---------- */
+function renderNav(){
+  $('nav').innerHTML=
+    navBtn('feed','🏠','צרכים')+navBtn('success','🎉','הצלחות')+
+    navBtn('settler','🌾','מתיישבים')+navBtn('support','🤝','חסות');
+}
+function navBtn(id,ic,label){
+  return `<button class="${tab===id?'on':''}" onclick="go('${id}')"><span class="ni">${ic}</span>${label}</button>`;
+}
+function go(t){
+  tab=t; render(); $('screen').scrollTop=0;
+  if(t==='settler' && session && myFarm===undefined) loadSettler();
+}
+function setTypeFilter(f){ typeFilter=f; render(); }
+function setRegionFilter(f){ regionFilter=f; render(); }
+
+/* ---------- עזר ---------- */
+function relTime(iso){
+  if(!iso) return '';
+  const d=Math.floor((Date.now()-new Date(iso).getTime())/86400000);
+  if(d<=0) return 'פורסם היום';
+  if(d===1) return 'פורסם אתמול';
+  if(d<7)  return `פורסם לפני ${d} ימים`;
+  if(d<14) return 'פורסם לפני שבוע';
+  if(d<30) return `פורסם לפני ${Math.floor(d/7)} שבועות`;
+  return 'פורסם לפני יותר מחודש';
+}
+
+function toast(msg){
+  const t=$('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+window.addEventListener('online',()=>{ if(loadError) retryLoad(); });
+
+boot();
+</script>
+</body>
+</html>
