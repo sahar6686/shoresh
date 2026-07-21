@@ -183,6 +183,11 @@
   .blockrow input{flex:1; border:1.5px solid var(--line); background:var(--card); border-radius:12px; padding:11px; font-family:'Assistant'; font-size:14px;}
   .blockrow .btn{width:auto; margin-top:0; padding:11px 16px;}
 
+  /* הנצחה */
+  .memorial{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:13px 15px; margin-top:12px; text-align:center;}
+  .memorial .cap{font-size:14px; margin-bottom:5px; opacity:.85;}
+  .memorial .line{font-family:'Frank Ruhl Libre',serif; font-weight:700; font-size:14px; color:var(--olive-deep); line-height:1.9;}
+
   /* states */
   .empty{text-align:center; color:var(--ink-soft); padding:40px 20px; font-size:13.5px; line-height:1.6;}
   .empty .em{font-size:40px; display:block; margin-bottom:10px;}
@@ -274,7 +279,7 @@ const TYPES={
   time:     {label:'זמן',  cls:'time',  ic:'🖐️', tp:'זמן / עבודה'}
 };
 const PHONE_RE=/^0\d{1,2}-?\d{7}$/;
-const APP_VER='1.1.0';
+const APP_VER='1.1.1';
 
 let sb=null;              // Supabase client
 let CFG={};               // config.json
@@ -661,6 +666,12 @@ function supportView(){
        href="https://wa.me/${esc(b.whatsapp||'')}?text=${encodeURIComponent('היי, אני מתעניין בחסות לשורש')}" target="_blank" rel="noopener">דברו איתנו על חסות</a>
   </div>
   <div class="trust">💛 בלי פרסומות · בלי תשלום מהמשתמשים · לעולם</div>`;
+
+  const mem=CFG.memorial||{};
+  if(mem.active && Array.isArray(mem.items) && mem.items.length){
+    html+=`<div class="memorial"><div class="cap">🕯️</div>`+
+      mem.items.map(l=>`<div class="line">${esc(l)}</div>`).join('')+`</div>`;
+  }
 
   if(b.active){
     html+=`

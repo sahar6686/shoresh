@@ -1,0 +1,12 @@
+# Netlify — למנוע גרסה תקועה במטמון של נייד.
+# הקבצים האלה חייבים להיבדק מול השרת בכל טעינה, אחרת משתמש
+# ממשיך לראות גרסה ישנה גם אחרי פריסה (קרה בסלולר, 2026-07-21).
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/config.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/env.js
+  Cache-Control: public, max-age=0, must-revalidate
