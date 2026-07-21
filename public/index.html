@@ -273,9 +273,9 @@
 </div>
 
 <script src="env.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.7/dist/umd/supabase.min.js"
-        integrity="sha384-BmlQlKlDvXvKoxkn5OQuUo/aJQCTXeB+Kls6EccBmG4Kf8AXvp89RtO9MtPxP/r5"
-        crossorigin="anonymous"></script>
+<!-- supabase-js 2.110.7, מוגש מאותו שרת: מוריד תלות בצד שלישי שנפילה שלו
+     משאירה מסך ריק, ועובד גם ברשת שחוסמת CDN. -->
+<script src="supabase.min.js"></script>
 <script>
 'use strict';
 
@@ -286,7 +286,7 @@ const TYPES={
   time:     {label:'זמן',  cls:'time',  ic:'🖐️', tp:'זמן / עבודה'}
 };
 const PHONE_RE=/^0\d{1,2}-?\d{7}$/;
-const APP_VER='1.2.0';
+const APP_VER='1.3.0';
 
 let sb=null;              // Supabase client
 let CFG={};               // config.json
@@ -302,6 +302,7 @@ let session=null;
 let myFarm;               // undefined = טרם נטען, null = אין חווה
 let myNeeds=null;
 let myOffers={};          // need_id -> offers[]
+let settlerError=false;
 let draftType='object';
 let draftEmoji='🌾';
 
@@ -597,7 +598,7 @@ async function sendDonation(){
     if(error) throw error;
     $('sheet').innerHTML=`<div class="grab"></div>
       <div class="empty"><span class="em">🌱</span><b>תודה! ההצעה נשלחה לאישור.</b><br>
-      אחרי בדיקה קצרה היא תעלה לפיד, וחווה שתבחר בה תיצור איתך קשר.</div>
+      נעבור עליה — בדרך כלל תוך יום — ואז היא תעלה לפיד. חווה שתבחר בה תיצור איתך קשר ישירות.</div>
       <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
   }catch(e){
     console.error('donation failed',e);
@@ -650,7 +651,9 @@ function supportView(){
   <div class="sup-hero">
     <div class="halo">🤝</div>
     <h2>מי מחזיק את שורש</h2>
-    <p>שורש חינמי למתיישבים ולנותנים — תמיד. הוא נשאר באוויר בזכות עסקים שבחרו לתמוך בהתיישבות, לא בזכות פרסומות.</p>
+    <p>שורש חינמי למתיישבים ולנותנים — תמיד.${items.length
+      ?' הוא נשאר באוויר בזכות עסקים שבחרו לתמוך בהתיישבות, לא בזכות פרסומות.'
+      :' הוא נבנה בהתנדבות ורץ בלי פרסומות ובלי תשלום מהמשתמשים.'}</p>
   </div>`;
 
   if(items.length){
@@ -780,6 +783,7 @@ const EMOJIS=['🌾','🐐','🐑','🐄','🍇','🌳','💧','🐝'];
 
 async function loadSettler(){
   if(!session) return;
+  settlerError=false;
   try{
     const {data:farms,error}=await sb.from('farms').select('*').eq('owner_id',session.user.id);
     if(error) throw error;
@@ -799,8 +803,9 @@ async function loadSettler(){
       }
     }
   }catch(e){
+    // בלי הדגל הזה המסך נתקע לנצח על "רגע…" בלי הסבר ובלי דרך לנסות שוב.
     console.error('settler load failed',e);
-    toast('שגיאה בטעינת הנתונים — נסה שוב');
+    settlerError=true;
   }
   if(tab==='settler') render();
 }
@@ -828,6 +833,12 @@ function settlerView(){
       <button class="btn olive" id="lgSend" onclick="sendMagicLink()">שלח לי קישור כניסה</button>
       <div class="banner ok hide" id="lgSent" style="margin-top:12px"></div>
     </div>`;
+
+  // כשל טעינה — הודעה ברורה וכפתור, לא שלד אינסופי
+  if(settlerError) return whoamiBar()+`<div class="empty"><span class="em">${navigator.onLine?'🌧️':'📡'}</span>
+    <b>${navigator.onLine?'לא הצלחנו לטעון את הנתונים שלך':'אין חיבור לאינטרנט'}</b><br>
+    ${navigator.onLine?'נסה שוב בעוד רגע.':'בדוק את החיבור ונסה שוב.'}
+    <button class="btn olive" style="max-width:220px;margin:16px auto 0" onclick="loadSettler()">נסה שוב</button></div>`;
 
   // מחובר אבל טרם נטען
   if(myFarm===undefined) return whoamiBar()+`<div class="myhead">רגע…</div>`+skeletons(2);
@@ -861,7 +872,9 @@ function settlerView(){
   let html=whoamiBar()+`<div class="myhead">${esc(myFarm.emoji)} ${esc(myFarm.name)}</div>`;
   html+=myFarm.verified
     ? `<div class="banner ok">✓ חווה מאומתת — הצרכים שלך מופיעים לציבור.</div>`
-    : `<div class="banner wait">🕓 החווה ממתינה לאימות. אפשר כבר לפרסם צרכים — הם יופיעו לציבור מיד אחרי האישור.</div>`;
+    : `<div class="banner wait">🕓 החווה ממתינה לאימות. סהראל מאמת כל חווה אישית, ולפעמים זה לוקח כמה ימים.
+        אפשר כבר לפרסם צרכים — הם יעלו לציבור מיד אחרי האישור.${CFG.builder&&CFG.builder.whatsapp
+          ?` <a href="https://wa.me/${esc(CFG.builder.whatsapp)}?text=${encodeURIComponent('היי, נרשמתי לשורש ורציתי לוודא שהחווה שלי בתהליך אימות')}" target="_blank" rel="noopener" style="color:#8A6410;font-weight:800">דבר איתנו בוואטסאפ</a>`:''}</div>`;
 
   if(myNeeds===null) html+=skeletons(2);
   else if(!myNeeds.length) html+=`<div class="empty"><span class="em">📋</span>עוד אין צרכים.<br>פרסם את הראשון — זה לוקח חצי דקה.</div>`;
@@ -1037,16 +1050,18 @@ async function loadAdmin(){
   adminData=null; confirmKey=null;
   if(tab==='admin') render();
   try{
-    const [pf,alld,bp,alln,allf]=await Promise.all([
+    // תור הממתינים נשלף בנפרד ומהישן לחדש — אחרת גל תרומות חדשות
+    // דוחף החוצה מהחלון בקשות אמיתיות שממתינות הכי הרבה זמן.
+    const [pf,pend,live,bp,alln,allf]=await Promise.all([
       sb.from('farms').select('*').eq('verified',false).order('created_at',{ascending:false}),
-      sb.from('donations').select('*').order('created_at',{ascending:false}).limit(60),
+      sb.from('donations').select('*').eq('approved',false).order('created_at',{ascending:true}),
+      sb.from('donations').select('*').eq('approved',true).order('created_at',{ascending:false}).limit(60),
       sb.from('blocked_phones').select('*').order('created_at',{ascending:false}),
       sb.from('needs').select('*').order('created_at',{ascending:false}).limit(60),
       sb.from('farms').select('id,name')
     ]);
-    const dons=alld.data||[];
     adminData={
-      farms:pf.data||[], don:dons.filter(d=>!d.approved), liveDon:dons.filter(d=>d.approved),
+      farms:pf.data||[], don:pend.data||[], liveDon:live.data||[],
       blocked:bp.data||[], needs:alln.data||[],
       farmNames:Object.fromEntries((allf.data||[]).map(x=>[x.id,x.name]))
     };
@@ -1241,7 +1256,16 @@ function toast(msg){
 
 window.addEventListener('online',()=>{ if(loadError) retryLoad(); });
 
-boot();
+// כשל ב-boot (ספרייה שלא נטענה, אחסון חסום בדפדפן מובנה) השאיר בעבר
+// מסך ריק לגמרי בלי מילה אחת למשתמש. עדיף הודעה מכוערת ממסך לבן.
+boot().catch(e=>{
+  console.error('boot failed',e);
+  $('screen').innerHTML=`<div class="empty"><span class="em">🌧️</span>
+    <b>משהו השתבש בטעינת האתר.</b><br>
+    נסה לרענן. אם זה חוזר — ייתכן שהדפדפן חוסם אחסון מקומי (גלישה בסתר),
+    או שהחיבור חלקי.
+    <button class="btn olive" style="max-width:220px;margin:16px auto 0" onclick="location.reload()">רענן</button></div>`;
+});
 </script>
 </body>
 </html>
