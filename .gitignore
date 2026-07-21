@@ -5,3 +5,4 @@ Thumbs.db
 # הערה: public/env.js כן נכנס ל-git בכוונה —
 # מפתח ה-anon של Supabase הוא ציבורי ובטוח בצד לקוח.
 # מה שאסור שיגיע לכאן לעולם: מפתח service_role.
+shoresh-site.zip
