@@ -286,7 +286,7 @@ const TYPES={
   time:     {label:'זמן',  cls:'time',  ic:'🖐️', tp:'זמן / עבודה'}
 };
 const PHONE_RE=/^0\d{1,2}-?\d{7}$/;
-const APP_VER='1.3.0';
+const APP_VER='1.4.0';
 
 let sb=null;              // Supabase client
 let CFG={};               // config.json
@@ -315,6 +315,12 @@ let isAdmin=false;
 let adminData=null;
 let adminCounts={farms:0,don:0};
 let confirmKey=null;      // אישור-כפול למחיקות
+/* הזנת חווה בטלפון */
+let intakeOpen=false;
+let intakeEmoji='🌾';
+let intakeNeedType='object';
+let addNeedFarm=null;     // farm id שאליו מוסיפים צורך
+let addNeedType='object';
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1058,11 +1064,11 @@ async function loadAdmin(){
       sb.from('donations').select('*').eq('approved',true).order('created_at',{ascending:false}).limit(60),
       sb.from('blocked_phones').select('*').order('created_at',{ascending:false}),
       sb.from('needs').select('*').order('created_at',{ascending:false}).limit(60),
-      sb.from('farms').select('id,name')
+      sb.from('farms').select('*').order('created_at',{ascending:false})
     ]);
     adminData={
       farms:pf.data||[], don:pend.data||[], liveDon:live.data||[],
-      blocked:bp.data||[], needs:alln.data||[],
+      blocked:bp.data||[], needs:alln.data||[], allFarms:allf.data||[],
       farmNames:Object.fromEntries((allf.data||[]).map(x=>[x.id,x.name]))
     };
   }catch(e){ console.error('admin load failed',e); adminData={error:true}; }
@@ -1084,6 +1090,8 @@ function adminView(){
   if(adminData.error) return whoamiBar()+`<div class="myhead">🛡️ ניהול</div>`+errorBox();
 
   let html=whoamiBar()+`<div class="myhead">🛡️ ניהול</div>`;
+
+  html+=adminIntakeSection();
 
   // חוות ממתינות
   html+=`<div class="adminhead">🕓 חוות ממתינות לאישור <span class="count">${adminData.farms.length}</span></div>`;
@@ -1153,6 +1161,130 @@ function adminView(){
     </div>`;}).join('');
 
   return html;
+}
+
+/* ---------- הזנת חווה בטלפון (מסלול הגיוס בשטח) ---------- */
+function adminIntakeSection(){
+  const regions=Array.isArray(CFG.regions)&&CFG.regions.length?CFG.regions:['גולן','גליל','נגב','הר'];
+  const farms=adminData.allFarms||[];
+  const mine=farms.filter(f=>!f.owner_id);
+
+  let html=`<div class="adminhead">📞 גיוס בשטח <span class="count">${farms.length} חוות</span></div>`;
+
+  if(!intakeOpen){
+    html+=`<button class="btn primary" onclick="toggleIntake()">➕ חווה חדשה — הזנה בזמן שיחה</button>`;
+  }else{
+    html+=`<div class="adminrow"><div class="form">
+      <label>שם החווה</label>
+      <input id="inName" maxlength="60" placeholder="לדוגמה: חוות רמת מגשימים">
+      <label>אזור</label>
+      <select id="inRegion">${regions.map(r=>`<option>${esc(r)}</option>`).join('')}</select>
+      <label>איפה בערך? (בלי כתובת מדויקת)</label>
+      <input id="inLoc" maxlength="60" placeholder="לדוגמה: דרום הרמה">
+      <label>טלפון החווה</label>
+      <input id="inPhone" maxlength="12" inputmode="tel" placeholder="050-1234567">
+      <label>סמל</label>
+      <div class="emojirow">${EMOJIS.map(e=>`<div class="echip ${intakeEmoji===e?'on':''}" data-e="${e}" onclick="setIntakeEmoji('${e}')">${e}</div>`).join('')}</div>
+
+      <div style="border-top:1px solid var(--line);margin:16px 0 0;padding-top:12px">
+        <div style="font-weight:800;font-size:13.5px;margin-bottom:6px">הצורך הראשון <span style="color:var(--ink-soft);font-weight:600">(אפשר לדלג)</span></div>
+        <div class="typepick">
+          ${Object.entries(TYPES).map(([k,v])=>`<div class="tp ${intakeNeedType===k?'on':''}" data-t="${k}" onclick="setIntakeNeedType('${k}')"><span class="ic">${v.ic}</span><span class="nm">${v.label}</span></div>`).join('')}
+        </div>
+        <label>מה צריך?</label>
+        <input id="inNeedTitle" maxlength="80" placeholder="לדוגמה: 200 מ׳ רשת גדר">
+        <label>פרטים</label>
+        <textarea id="inNeedDesc" rows="2" maxlength="500" placeholder="מתי, כמה, איפה בדיוק"></textarea>
+      </div>
+
+      <div class="formerr" id="inErr"></div>
+      <button class="btn primary" id="inSend" onclick="adminCreateFarm()">✅ הקם חווה — מאומתת ובאוויר</button>
+      <button class="linkbtn" onclick="toggleIntake()">ביטול</button>
+    </div></div>`;
+  }
+
+  if(mine.length){
+    html+=`<div style="font-size:12.5px;color:var(--ink-soft);margin:12px 2px 8px">חוות שהוקמו טלפונית (עדיין לא משויכות למתיישב):</div>`;
+    html+=mine.map(f=>{
+      const cnt=(adminData.needs||[]).filter(n=>n.farm_id===f.id).length;
+      const open=addNeedFarm===f.id;
+      return `<div class="adminrow">
+        <div class="t">${esc(f.emoji)} ${esc(f.name)} ${f.verified?'':'<span class="donchip">ממתינה</span>'}</div>
+        <div class="s">📍 ${esc(f.region)}${f.location_note?' · '+esc(f.location_note):''} · 📞 ${esc(f.contact_phone)} · ${cnt} צרכים</div>
+        ${open?`<div class="form">
+          <div class="typepick" style="margin-top:10px">
+            ${Object.entries(TYPES).map(([k,v])=>`<div class="tp ${addNeedType===k?'on':''}" onclick="setAddNeedType('${k}')"><span class="ic">${v.ic}</span><span class="nm">${v.label}</span></div>`).join('')}
+          </div>
+          <label>מה צריך?</label>
+          <input id="anTitle" maxlength="80" placeholder="לדוגמה: 15 שקי מספוא">
+          <label>פרטים</label>
+          <textarea id="anDesc" rows="2" maxlength="500"></textarea>
+          <div class="formerr" id="anErr"></div>
+          <button class="btn primary" id="anSend" onclick="adminAddNeed('${f.id}')">פרסם צורך</button>
+          <button class="linkbtn" onclick="setAddNeedFarm(null)">סגור</button>
+        </div>`
+        :`<div class="btnrow"><button class="btn ghost" onclick="setAddNeedFarm('${f.id}')">➕ הוסף צורך</button></div>`}
+      </div>`;
+    }).join('');
+  }
+  return html;
+}
+
+function toggleIntake(){ intakeOpen=!intakeOpen; render(); if(intakeOpen) setTimeout(()=>{const el=$('inName'); if(el) el.focus();},50); }
+function setIntakeEmoji(e){ intakeEmoji=e; document.querySelectorAll('.emojirow .echip').forEach(el=>el.classList.toggle('on', el.dataset.e===e)); }
+function setIntakeNeedType(t){ intakeNeedType=t; document.querySelectorAll('.typepick .tp[data-t]').forEach(el=>el.classList.toggle('on', el.dataset.t===t)); }
+function setAddNeedFarm(id){ addNeedFarm=id; render(); }
+function setAddNeedType(t){ addNeedType=t; render(); }
+
+async function adminCreateFarm(){
+  const name=$('inName').value.trim();
+  const phone=$('inPhone').value.trim();
+  const nTitle=$('inNeedTitle').value.trim();
+  const err=$('inErr'); err.classList.remove('show');
+  if(name.length<2){ err.textContent='כתוב את שם החווה.'; err.classList.add('show'); return; }
+  if(!PHONE_RE.test(phone)){ err.textContent='מספר טלפון לא תקין (לדוגמה: 050-1234567).'; err.classList.add('show'); return; }
+  const btn=$('inSend'); btn.disabled=true; btn.textContent='מקים…';
+  try{
+    const {data:farm,error}=await sb.from('farms').insert({
+      name, region:$('inRegion').value, location_note:$('inLoc').value.trim()||null,
+      contact_phone:phone, emoji:intakeEmoji, verified:true, owner_id:null
+    }).select().single();
+    if(error) throw error;
+    if(nTitle.length>=3){
+      const {error:e2}=await sb.from('needs').insert({
+        farm_id:farm.id, type:intakeNeedType, title:nTitle, description:$('inNeedDesc').value.trim()});
+      if(e2) throw e2;
+    }
+    toast(nTitle.length>=3?'🌱 החווה והצורך עלו לאוויר':'🌱 החווה עלתה לאוויר');
+    intakeOpen=false; intakeEmoji='🌾'; intakeNeedType='object';
+    loadAdmin(); refreshData();
+  }catch(e){
+    console.error('admin create farm failed',e);
+    btn.disabled=false; btn.textContent='✅ הקם חווה — מאומתת ובאוויר';
+    err.textContent=(e.message||'').includes('policy')
+      ? 'חסרה הרשאה — צריך להריץ את db/admin_intake.sql'
+      : 'ההקמה נכשלה — נסה שוב.';
+    err.classList.add('show');
+  }
+}
+
+async function adminAddNeed(farmId){
+  const title=$('anTitle').value.trim();
+  const err=$('anErr'); err.classList.remove('show');
+  if(title.length<3){ err.textContent='כתוב מה צריך.'; err.classList.add('show'); return; }
+  const btn=$('anSend'); btn.disabled=true; btn.textContent='מפרסם…';
+  try{
+    const {error}=await sb.from('needs').insert({
+      farm_id:farmId, type:addNeedType, title, description:$('anDesc').value.trim()});
+    if(error) throw error;
+    toast('הצורך פורסם ✓');
+    addNeedFarm=null;
+    loadAdmin(); refreshData();
+  }catch(e){
+    console.error('admin add need failed',e);
+    btn.disabled=false; btn.textContent='פרסם צורך';
+    err.textContent='הפרסום נכשל — נסה שוב.'; err.classList.add('show');
+  }
 }
 
 async function adminApproveFarm(id){
