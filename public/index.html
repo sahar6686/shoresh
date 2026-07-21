@@ -279,7 +279,7 @@ const TYPES={
   time:     {label:'זמן',  cls:'time',  ic:'🖐️', tp:'זמן / עבודה'}
 };
 const PHONE_RE=/^0\d{1,2}-?\d{7}$/;
-const APP_VER='1.1.1';
+const APP_VER='1.1.2';
 
 let sb=null;              // Supabase client
 let CFG={};               // config.json
@@ -1015,15 +1015,17 @@ async function loadAdmin(){
   adminData=null; confirmKey=null;
   if(tab==='admin') render();
   try{
-    const [pf,pd,bp,alln,allf]=await Promise.all([
+    const [pf,alld,bp,alln,allf]=await Promise.all([
       sb.from('farms').select('*').eq('verified',false).order('created_at',{ascending:false}),
-      sb.from('donations').select('*').eq('approved',false).order('created_at',{ascending:false}),
+      sb.from('donations').select('*').order('created_at',{ascending:false}).limit(60),
       sb.from('blocked_phones').select('*').order('created_at',{ascending:false}),
       sb.from('needs').select('*').order('created_at',{ascending:false}).limit(60),
       sb.from('farms').select('id,name')
     ]);
+    const dons=alld.data||[];
     adminData={
-      farms:pf.data||[], don:pd.data||[], blocked:bp.data||[], needs:alln.data||[],
+      farms:pf.data||[], don:dons.filter(d=>!d.approved), liveDon:dons.filter(d=>d.approved),
+      blocked:bp.data||[], needs:alln.data||[],
       farmNames:Object.fromEntries((allf.data||[]).map(x=>[x.id,x.name]))
     };
   }catch(e){ console.error('admin load failed',e); adminData={error:true}; }
@@ -1072,6 +1074,19 @@ function adminView(){
         <button class="btn olive" onclick="adminApproveDon('${d.id}')">✅ אשר לפרסום</button>
         ${dangerBtn('don:'+d.id,'🗑️ דחה',`adminDeleteDon('${d.id}')`)}
       </div>
+    </div>`;}).join('');
+
+  // תרומות שכבר באוויר
+  html+=`<div class="adminhead">🎁 תרומות באוויר <span class="count">${adminData.liveDon.length}</span></div>`;
+  if(!adminData.liveDon.length) html+=`<div class="adminrow"><div class="s">אין תרומות מאושרות.</div></div>`;
+  else html+=adminData.liveDon.map(d=>{
+    const t=TYPES[d.type]||TYPES.object;
+    const st=d.status==='available'?'פנוי':(d.status==='claimed'?'שוריין':'נמסר ✓');
+    return `
+    <div class="adminrow">
+      <div class="t">${t.ic} ${esc(d.title)}</div>
+      <div class="s">📍 ${esc(d.region)} · 👤 ${esc(d.giver_name)} · ${st} · ${relTime(d.created_at)}</div>
+      <div class="btnrow">${dangerBtn('livedon:'+d.id,'🗑️ הסר מהאוויר',`adminDeleteDon('${d.id}')`)}</div>
     </div>`;}).join('');
 
   // טלפונים חסומים
