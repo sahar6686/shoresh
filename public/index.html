@@ -159,6 +159,30 @@
   .offerline a{color:var(--olive-deep); font-weight:700; text-decoration:none;}
   .linkbtn{background:none; border:0; color:var(--ink-soft); font-family:'Assistant'; font-weight:600; font-size:12px; cursor:pointer; text-decoration:underline; margin-top:14px;}
 
+  /* מתג מבקשים/נותנים */
+  .seg{display:flex; background:#DAD7C6; border-radius:100px; padding:4px; gap:2px; margin-bottom:12px; box-shadow:inset 0 1px 3px rgba(0,0,0,.08);}
+  .seg button{flex:1; border:0; background:transparent; font-family:'Assistant'; font-weight:700; font-size:13.5px; color:var(--ink-soft); padding:9px 10px; border-radius:100px; cursor:pointer; transition:.25s;}
+  .seg button.on{background:var(--card); color:var(--olive-deep); box-shadow:0 2px 6px rgba(0,0,0,.12);}
+  .donchip{font-size:11px; font-weight:700; padding:3px 9px; border-radius:100px; background:var(--wheat-soft); color:#8A6410; white-space:nowrap;}
+
+  /* תג התראה בניווט */
+  .nav button{position:relative;}
+  .navbadge{position:absolute; top:7px; right:50%; margin-right:-26px; background:#C0392B; color:#fff; font-size:10px; font-weight:800; min-width:16px; height:16px; border-radius:100px; display:flex; align-items:center; justify-content:center; padding:0 4px;}
+
+  /* מסך ניהול */
+  .adminrow{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 13px; margin-bottom:10px;}
+  .adminrow .t{font-weight:800; font-size:14px; line-height:1.35;}
+  .adminrow .s{font-size:12px; color:var(--ink-soft); margin-top:3px; line-height:1.5;}
+  .adminhead{font-weight:800; font-size:15px; margin:18px 2px 10px; display:flex; align-items:center; gap:7px;}
+  .count{background:var(--wheat-soft); color:#8A6410; font-size:11px; font-weight:800; border-radius:100px; padding:2px 9px;}
+  .btnrow{display:flex; gap:8px; margin-top:10px;}
+  .btnrow .btn{margin-top:0; padding:10px; font-size:13.5px; flex:1;}
+  .btn.danger{background:transparent; border:1.5px solid #C97B6A; color:#A2401F;}
+  .btn.danger.confirm{background:#C0392B; border-color:#C0392B; color:#fff;}
+  .blockrow{display:flex; gap:8px; margin-bottom:12px;}
+  .blockrow input{flex:1; border:1.5px solid var(--line); background:var(--card); border-radius:12px; padding:11px; font-family:'Assistant'; font-size:14px;}
+  .blockrow .btn{width:auto; margin-top:0; padding:11px 16px;}
+
   /* states */
   .empty{text-align:center; color:var(--ink-soft); padding:40px 20px; font-size:13.5px; line-height:1.6;}
   .empty .em{font-size:40px; display:block; margin-bottom:10px;}
@@ -250,7 +274,7 @@ const TYPES={
   time:     {label:'זמן',  cls:'time',  ic:'🖐️', tp:'זמן / עבודה'}
 };
 const PHONE_RE=/^0\d{1,2}-?\d{7}$/;
-const APP_VER='1.0.0';
+const APP_VER='1.1.0';
 
 let sb=null;              // Supabase client
 let CFG={};               // config.json
@@ -268,6 +292,16 @@ let myNeeds=null;
 let myOffers={};          // need_id -> offers[]
 let draftType='object';
 let draftEmoji='🌾';
+
+/* צד היצע + אדמין */
+let feedMode='needs';     // 'needs' | 'donations'
+let donationsCache=null;
+let successDon=null;
+let dDraftType='object';
+let isAdmin=false;
+let adminData=null;
+let adminCounts={farms:0,don:0};
+let confirmKey=null;      // אישור-כפול למחיקות
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -287,9 +321,14 @@ async function boot(){
   // צד מתיישב — מעקב התחברות (Magic Link חוזר לדף עם session)
   const {data:{session:s0}}=await sb.auth.getSession();
   session=s0;
+  if(session){ loadSettler(); }
+  checkAdmin();
   sb.auth.onAuthStateChange((_ev,s)=>{
     session=s; myFarm=undefined; myNeeds=null; myOffers={};
-    if(tab==='settler'){ render(); loadSettler(); }
+    isAdmin=false; adminData=null;
+    if(session) loadSettler();
+    checkAdmin();
+    if(tab==='settler'){ render(); }
   });
 
   // config.json — כשל בטעינה לא מפיל את האתר
@@ -305,14 +344,20 @@ async function boot(){
 async function refreshData(){
   loadError=false;
   try{
-    const [needsRes, sucRes]=await Promise.all([
+    const [needsRes, sucRes, donRes, sucDonRes]=await Promise.all([
       sb.from('feed_needs').select('*'),
-      sb.from('success_feed').select('*').limit(30)
+      sb.from('success_feed').select('*').limit(30),
+      sb.from('feed_donations').select('*'),
+      sb.from('success_donations').select('*').limit(30)
     ]);
     if(needsRes.error) throw needsRes.error;
     if(sucRes.error) throw sucRes.error;
+    if(donRes.error) throw donRes.error;
+    if(sucDonRes.error) throw sucDonRes.error;
     needsCache=needsRes.data??[];
     successCache=sucRes.data??[];
+    donationsCache=donRes.data??[];
+    successDon=sucDonRes.data??[];
     updatePulse();
   }catch(e){
     console.error('load failed',e);
@@ -323,9 +368,10 @@ async function refreshData(){
 
 function updatePulse(){
   if(!successCache) return;
+  const all=[...(successCache||[]),...(successDon||[])];
   const monthStart=new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
-  const m=successCache.filter(x=>x.delivered_at && new Date(x.delivered_at)>=monthStart).length;
-  const total=successCache.length;
+  const m=all.filter(x=>x.delivered_at && new Date(x.delivered_at)>=monthStart).length;
+  const total=all.length;
   const el=$('pulse');
   if(m>0){
     $('pulseTxt').innerHTML=(m===1
@@ -348,6 +394,7 @@ function render(){
   if(tab==='feed') s.innerHTML=feedView();
   else if(tab==='success') s.innerHTML=successView();
   else if(tab==='settler') s.innerHTML=settlerView();
+  else if(tab==='admin') s.innerHTML=adminView();
   else s.innerHTML=supportView();
   renderNav();
 }
@@ -364,8 +411,13 @@ function errorBox(){
 function retryLoad(){ needsCache=null; successCache=null; render(); refreshData(); }
 
 function feedView(){
+  let html=`<div class="seg">
+    <button class="${feedMode==='needs'?'on':''}" onclick="setFeedMode('needs')">🌾 מבקשים עזרה</button>
+    <button class="${feedMode==='donations'?'on':''}" onclick="setFeedMode('donations')">🎁 רוצים לתת</button>
+  </div>`;
+
   const cats=[['all','הכל'],['object','📦 חפץ'],['transport','🚚 שינוע'],['time','🖐️ זמן']];
-  let html=`<div class="filters">`+cats.map(c=>
+  html+=`<div class="filters">`+cats.map(c=>
     `<div class="chip ${typeFilter===c[0]?'on':''}" onclick="setTypeFilter('${c[0]}')">${c[1]}</div>`).join('')+`</div>`;
 
   const regions=Array.isArray(CFG.regions)?CFG.regions:[];
@@ -375,13 +427,172 @@ function feedView(){
   }
 
   if(loadError) return html+errorBox();
-  if(needsCache===null) return html+skeletons(4);
 
+  if(feedMode==='donations'){
+    html+=`<button class="btn olive" style="margin:2px 0 12px" onclick="openDonationForm()">🎁 יש לי מה לתרום</button>`;
+    if(donationsCache===null) return html+skeletons(3);
+    const list=donationsCache.filter(d=>
+      (typeFilter==='all'||d.type===typeFilter) &&
+      (regionFilter==='all'||d.region===regionFilter));
+    if(!list.length) return html+`<div class="empty"><span class="em">🎁</span>אין כרגע תרומות פתוחות${typeFilter!=='all'||regionFilter!=='all'?' בסינון הזה':''}.<br>יש לך מה לתת? הכפתור למעלה מחכה לך.</div>`;
+    return html+list.map(donationCard).join('');
+  }
+
+  if(needsCache===null) return html+skeletons(4);
   const list=needsCache.filter(n=>
     (typeFilter==='all'||n.type===typeFilter) &&
     (regionFilter==='all'||n.region===regionFilter));
   if(!list.length) return html+`<div class="empty"><span class="em">🌾</span>אין כרגע צרכים פתוחים${typeFilter!=='all'||regionFilter!=='all'?' בסינון הזה':''}.<br>שווה להציץ שוב מחר.</div>`;
   return html+list.map(needCard).join('');
+}
+function setFeedMode(m){ feedMode=m; render(); }
+
+/* ---------- כרטיס תרומה + שיריון ---------- */
+function donationCard(d){
+  const t=TYPES[d.type]||TYPES.object;
+  const claimed=d.status==='claimed'
+    ?`<span class="donchip">🤝 שוריין · ${esc(d.claimed_by_name||'חווה')}</span>`:'';
+  return `<div class="card" onclick="openDonation('${d.id}')">
+    <div class="top">
+      <div class="farm"><div class="avatar">🎁</div>
+        <div><div class="name">${esc(d.title)}</div><div class="loc">📍 ${esc(d.region)}</div></div>
+      </div>
+      <div class="tag ${t.cls}">${t.ic} ${t.label}</div>
+    </div>
+    <div class="desc">${esc(d.description)}</div>
+    <div class="foot"><span>${relTime(d.created_at)}</span> ${claimed}</div>
+  </div>`;
+}
+
+function openDonation(id){
+  const d=(donationsCache||[]).find(x=>x.id===id);
+  if(!d) return;
+  const t=TYPES[d.type]||TYPES.object;
+  const mine=!!(myFarm && d.claimed_by_name===myFarm.name);
+
+  let action='';
+  if(d.status==='claimed' && !mine){
+    action=`<div class="infoline">🤝 <span>שוריין על ידי <b>${esc(d.claimed_by_name||'חווה')}</b></span></div>`;
+  }else if(myFarm && myFarm.verified){
+    action=`<button class="btn primary" id="claimBtn" onclick="claimDonation('${d.id}')">${mine?'📞 הצג שוב את פרטי הנותן':'🤝 מתאים לחווה שלי — קבל פרטי קשר'}</button>`;
+    if(mine) action+=`<button class="btn olive" onclick="donationDelivered('${d.id}')">סמן: נמסר ✓</button>`;
+  }else if(session && myFarm && !myFarm.verified){
+    action=`<div class="infoline">🕓 <span>החווה שלך ממתינה לאימות — אחריו תוכל לשריין תרומות.</span></div>`;
+  }else{
+    action=`<div class="infoline">🌾 <span>שיריון תרומה פתוח <b>לחוות מאומתות</b> בלבד.</span></div>
+      <button class="btn olive" onclick="closeSheet();go('settler')">אני מתיישב — כניסה</button>`;
+  }
+
+  $('sheet').innerHTML=`
+    <div class="grab"></div>
+    <div class="top" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="farm"><div class="avatar" style="width:44px;height:44px;font-size:22px">🎁</div>
+        <div><div class="name" style="font-size:16px">תרומה מהקהילה</div>
+        <div class="loc">📍 ${esc(d.region)}</div></div></div>
+      <div class="tag ${t.cls}">${t.ic} ${t.label}</div>
+    </div>
+    <div class="big">${esc(d.title)}</div>
+    <div class="desc" style="font-size:13.5px;color:var(--ink-soft);line-height:1.6">${esc(d.description)}</div>
+    <div class="infoline">🎯 <span>סוג: <b>${t.tp}</b></span></div>
+    <div class="infoline">🕓 <span>${relTime(d.created_at)}</span></div>
+    ${action}
+    <div class="contactbox" id="dcbox"></div>
+    <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
+  $('overlay').classList.add('open');
+}
+
+async function claimDonation(id){
+  const btn=$('claimBtn');
+  if(btn){ btn.disabled=true; btn.textContent='רגע…'; }
+  try{
+    const {data,error}=await sb.rpc('claim_donation',{p_donation_id:id});
+    if(error) throw error;
+    const row=Array.isArray(data)?data[0]:data;
+    const tel=String(row.giver_phone).replace(/[^\d+]/g,'');
+    if(btn) btn.classList.add('hide');
+    $('dcbox').innerHTML=`
+      <div class="t">✓ שוריין לחווה שלך! צרו קשר עם ${esc(row.giver_name)}</div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px">סכמו ביניכם איסוף/מסירה. כשהתרומה אצלך — סמן "נמסר" וזה יעלה להצלחות.</div>
+      <div class="contactrow">
+        <a href="tel:${esc(tel)}">📞 ${esc(row.giver_phone)}</a>
+        <a href="https://wa.me/972${esc(tel.replace(/^0/,''))}" target="_blank" rel="noopener">💬 וואטסאפ</a>
+      </div>`;
+    $('dcbox').classList.add('show');
+    refreshData();
+  }catch(e){
+    console.error('claim failed',e);
+    if(btn){ btn.disabled=false; btn.textContent='🤝 מתאים לחווה שלי — קבל פרטי קשר'; }
+    toast(e.message&&e.message.includes('שוריינה')?'התרומה כבר שוריינה לחווה אחרת':'הפעולה נכשלה — נסה שוב');
+  }
+}
+
+async function donationDelivered(id){
+  try{
+    const {error}=await sb.rpc('donation_delivered',{p_donation_id:id});
+    if(error) throw error;
+    toast('🎉 נמסר! התרומה עלתה להצלחות');
+    closeSheet(); refreshData();
+  }catch(e){ console.error(e); toast('העדכון נכשל — נסה שוב'); }
+}
+
+/* ---------- טופס "יש לי מה לתרום" ---------- */
+function openDonationForm(){
+  const regions=Array.isArray(CFG.regions)&&CFG.regions.length?CFG.regions:['גולן','גליל','נגב','הר'];
+  $('sheet').innerHTML=`
+    <div class="grab"></div>
+    <div class="big">🎁 יש לי מה לתרום</div>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:4px 0 6px;line-height:1.6">
+      ממלאים פעם אחת, בלי הרשמה. אחרי אישור קצר — התרומה תופיע לחוות, ומי שתבחר בה תקבל את הטלפון שלך.</p>
+    <div class="form" id="dForm">
+      <label>מה אתה נותן?</label>
+      <div class="typepick">
+        ${Object.entries(TYPES).map(([k,v])=>`<div class="tp ${dDraftType===k?'on':''}" data-t="${k}" onclick="setDDraft('${k}')"><span class="ic">${v.ic}</span><span class="nm">${v.label}</span></div>`).join('')}
+      </div>
+      <label>בקצרה — מה יש לך?</label>
+      <input id="dnTitle" maxlength="80" placeholder="לדוגמה: 100 מ׳ רשת גדר עודפת">
+      <label>פרטים (מצב, כמות, מאיפה איסוף)</label>
+      <textarea id="dnDesc" rows="3" maxlength="500" placeholder="ספר בכמה מילים."></textarea>
+      <label>איזור</label>
+      <select id="dnRegion">${regions.map(r=>`<option>${esc(r)}</option>`).join('')}</select>
+      <label>השם שלך</label>
+      <input id="dnName" maxlength="60" placeholder="שם מלא">
+      <label>טלפון (יימסר רק לחווה שתשריין)</label>
+      <input id="dnPhone" maxlength="12" inputmode="tel" placeholder="050-1234567">
+      <div class="formerr" id="dnErr"></div>
+      <button class="btn primary" id="dnSend" onclick="sendDonation()">שלח לאישור</button>
+    </div>
+    <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
+  $('overlay').classList.add('open');
+}
+function setDDraft(t){
+  dDraftType=t;
+  document.querySelectorAll('#dForm .tp').forEach(el=>el.classList.toggle('on', el.dataset.t===t));
+}
+
+async function sendDonation(){
+  const title=$('dnTitle').value.trim();
+  const name=$('dnName').value.trim();
+  const phone=$('dnPhone').value.trim();
+  const err=$('dnErr'); err.classList.remove('show');
+  if(title.length<3){ err.textContent='כתוב מה אתה נותן.'; err.classList.add('show'); return; }
+  if(name.length<2){ err.textContent='כתוב שם — ככה החווה יודעת מי מתקשר.'; err.classList.add('show'); return; }
+  if(!PHONE_RE.test(phone)){ err.textContent='מספר הטלפון לא נראה תקין (לדוגמה: 050-1234567).'; err.classList.add('show'); return; }
+  const btn=$('dnSend'); btn.disabled=true; btn.textContent='שולח…';
+  try{
+    const {error}=await sb.rpc('submit_donation',{
+      p_type:dDraftType, p_title:title, p_description:$('dnDesc').value.trim(),
+      p_region:$('dnRegion').value, p_giver_name:name, p_giver_phone:phone});
+    if(error) throw error;
+    $('sheet').innerHTML=`<div class="grab"></div>
+      <div class="empty"><span class="em">🌱</span><b>תודה! ההצעה נשלחה לאישור.</b><br>
+      אחרי בדיקה קצרה היא תעלה לפיד, וחווה שתבחר בה תיצור איתך קשר.</div>
+      <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
+  }catch(e){
+    console.error('donation failed',e);
+    btn.disabled=false; btn.textContent='שלח לאישור';
+    err.textContent=e.message&&/ממתינות|עומס|נכשלה/.test(e.message)?e.message:'השליחה נכשלה — נסה שוב.';
+    err.classList.add('show');
+  }
 }
 
 function needCard(n){
@@ -404,12 +615,16 @@ function successView(){
   let html=`<div class="myhead" style="margin-bottom:12px">🎉 מעגלים שנסגרו</div>`;
   if(loadError) return html+errorBox();
   if(successCache===null) return html+skeletons(3);
-  if(!successCache.length) return html+`<div class="empty"><span class="em">🌱</span>עוד לא נסגר כאן מעגל ראשון.<br>ההצלחה הראשונה בדרך — אולי בזכותך.</div>`;
-  return html+successCache.map(x=>{
+  const merged=[
+    ...(successCache||[]).map(x=>({...x, kind:'need'})),
+    ...(successDon||[]).map(x=>({...x, kind:'don'}))
+  ].sort((a,b)=>new Date(b.delivered_at)-new Date(a.delivered_at));
+  if(!merged.length) return html+`<div class="empty"><span class="em">🌱</span>עוד לא נסגר כאן מעגל ראשון.<br>ההצלחה הראשונה בדרך — אולי בזכותך.</div>`;
+  return html+merged.map(x=>{
     const t=TYPES[x.type]||TYPES.object;
     return `<div class="succard">
-      <div class="win"><div class="check">✓</div> ${esc(x.farm_name)} — נמסר!</div>
-      <div class="body">${t.ic} ${esc(x.title)}</div>
+      <div class="win"><div class="check">✓</div> ${esc(x.farm_name)} — ${x.kind==='don'?'קיבלה תרומה!':'נמסר!'}</div>
+      <div class="body">${x.kind==='don'?'🎁':t.ic} ${esc(x.title)}</div>
       <div class="when">📍 ${esc(x.region)} · ${relTime(x.delivered_at)}</div>
     </div>`;
   }).join('');
@@ -761,11 +976,190 @@ async function doSignOut(){
   tab='feed'; render();
 }
 
+/* ---------- מסך ניהול (אדמין) ---------- */
+async function checkAdmin(){
+  if(!sb || !session){ isAdmin=false; adminCounts={farms:0,don:0}; renderNav(); return; }
+  try{
+    const {data}=await sb.from('admins').select('user_id');
+    isAdmin=!!(data && data.length);
+  }catch(e){ isAdmin=false; }
+  renderNav();
+  if(isAdmin) loadAdminCounts();
+}
+
+async function loadAdminCounts(){
+  if(!isAdmin) return;
+  try{
+    const [f,d]=await Promise.all([
+      sb.from('farms').select('id',{count:'exact',head:true}).eq('verified',false),
+      sb.from('donations').select('id',{count:'exact',head:true}).eq('approved',false)
+    ]);
+    adminCounts={farms:f.count||0, don:d.count||0};
+  }catch(e){ console.error('counts failed',e); }
+  renderNav();
+}
+
+async function loadAdmin(){
+  if(!isAdmin) return;
+  adminData=null; confirmKey=null;
+  if(tab==='admin') render();
+  try{
+    const [pf,pd,bp,alln,allf]=await Promise.all([
+      sb.from('farms').select('*').eq('verified',false).order('created_at',{ascending:false}),
+      sb.from('donations').select('*').eq('approved',false).order('created_at',{ascending:false}),
+      sb.from('blocked_phones').select('*').order('created_at',{ascending:false}),
+      sb.from('needs').select('*').order('created_at',{ascending:false}).limit(60),
+      sb.from('farms').select('id,name')
+    ]);
+    adminData={
+      farms:pf.data||[], don:pd.data||[], blocked:bp.data||[], needs:alln.data||[],
+      farmNames:Object.fromEntries((allf.data||[]).map(x=>[x.id,x.name]))
+    };
+  }catch(e){ console.error('admin load failed',e); adminData={error:true}; }
+  loadAdminCounts();
+  if(tab==='admin') render();
+}
+
+function dangerBtn(key,label,fn){
+  const armed=confirmKey===key;
+  return `<button class="btn danger ${armed?'confirm':''}" onclick="${armed?fn:`armConfirm('${key}')`}">${armed?'בטוח? לחץ שוב למחיקה':label}</button>`;
+}
+function armConfirm(key){ confirmKey=key; render(); setTimeout(()=>{ if(confirmKey===key){ confirmKey=null; if(tab==='admin') render(); } },4000); }
+
+function adminView(){
+  if(!session) return `<div class="empty"><span class="em">🛡️</span>מסך הניהול דורש התחברות.<br>היכנס דרך טאב "🌾 מתיישבים".</div>`;
+  if(!isAdmin) return `<div class="empty"><span class="em">⛔</span>אין לחשבון הזה הרשאת ניהול.</div>`;
+  if(adminData===null) return `<div class="myhead">🛡️ ניהול</div>`+skeletons(3);
+  if(adminData.error) return `<div class="myhead">🛡️ ניהול</div>`+errorBox();
+
+  let html=`<div class="myhead">🛡️ ניהול</div>`;
+
+  // חוות ממתינות
+  html+=`<div class="adminhead">🕓 חוות ממתינות לאישור <span class="count">${adminData.farms.length}</span></div>`;
+  if(!adminData.farms.length) html+=`<div class="adminrow"><div class="s">אין חוות ממתינות. הכל נקי ✓</div></div>`;
+  else html+=adminData.farms.map(f=>`
+    <div class="adminrow">
+      <div class="t">${esc(f.emoji)} ${esc(f.name)}</div>
+      <div class="s">📍 ${esc(f.region)}${f.location_note?' · '+esc(f.location_note):''} · 📞 ${esc(f.contact_phone)} · ${relTime(f.created_at)}</div>
+      <div class="btnrow">
+        <button class="btn olive" onclick="adminApproveFarm('${f.id}')">✅ אשר</button>
+        ${dangerBtn('farm:'+f.id,'🗑️ דחה ומחק',`adminDeleteFarm('${f.id}')`)}
+      </div>
+    </div>`).join('');
+
+  // תרומות ממתינות
+  html+=`<div class="adminhead">🎁 תרומות ממתינות לאישור <span class="count">${adminData.don.length}</span></div>`;
+  if(!adminData.don.length) html+=`<div class="adminrow"><div class="s">אין תרומות ממתינות.</div></div>`;
+  else html+=adminData.don.map(d=>{
+    const t=TYPES[d.type]||TYPES.object;
+    return `
+    <div class="adminrow">
+      <div class="t">${t.ic} ${esc(d.title)}</div>
+      <div class="s">${esc(d.description)}</div>
+      <div class="s">📍 ${esc(d.region)} · 👤 ${esc(d.giver_name)} · 📞 ${esc(d.giver_phone)} · ${relTime(d.created_at)}</div>
+      <div class="btnrow">
+        <button class="btn olive" onclick="adminApproveDon('${d.id}')">✅ אשר לפרסום</button>
+        ${dangerBtn('don:'+d.id,'🗑️ דחה',`adminDeleteDon('${d.id}')`)}
+      </div>
+    </div>`;}).join('');
+
+  // טלפונים חסומים
+  html+=`<div class="adminhead">🚫 טלפונים חסומים <span class="count">${adminData.blocked.length}</span></div>
+  <div class="blockrow">
+    <input id="blkPhone" inputmode="tel" maxlength="12" placeholder="050-1234567">
+    <button class="btn olive" onclick="adminBlockPhone()">חסום</button>
+  </div>`;
+  html+=adminData.blocked.map(b=>`
+    <div class="adminrow" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="t" style="direction:ltr">${esc(b.phone)}</div>
+      <button class="btn ghost" style="width:auto;margin:0;padding:8px 14px" onclick="adminUnblock('${esc(b.phone)}')">הסר</button>
+    </div>`).join('');
+
+  // כל הצרכים
+  html+=`<div class="adminhead">📋 כל הצרכים במערכת <span class="count">${adminData.needs.length}</span></div>`;
+  if(!adminData.needs.length) html+=`<div class="adminrow"><div class="s">אין צרכים.</div></div>`;
+  else html+=adminData.needs.map(n=>{
+    const t=TYPES[n.type]||TYPES.object;
+    const st=n.status==='open'?'פתוח':(n.status==='committed'?'התחייבו':'נמסר ✓');
+    return `
+    <div class="adminrow">
+      <div class="t">${t.ic} ${esc(n.title)}</div>
+      <div class="s">${esc(adminData.farmNames[n.farm_id]||'')} · ${st} · ${relTime(n.created_at)}</div>
+      <div class="btnrow">${dangerBtn('need:'+n.id,'🗑️ מחק צורך',`adminDeleteNeed('${n.id}')`)}</div>
+    </div>`;}).join('');
+
+  return html;
+}
+
+async function adminApproveFarm(id){
+  try{
+    const {error}=await sb.from('farms').update({verified:true}).eq('id',id);
+    if(error) throw error;
+    toast('✅ החווה אושרה ועלתה לאוויר');
+    loadAdmin(); refreshData();
+  }catch(e){ console.error(e); toast('האישור נכשל — נסה שוב'); }
+}
+async function adminDeleteFarm(id){
+  confirmKey=null;
+  try{
+    const {error}=await sb.from('farms').delete().eq('id',id);
+    if(error) throw error;
+    toast('החווה נמחקה');
+    loadAdmin(); refreshData();
+  }catch(e){ console.error(e); toast('המחיקה נכשלה'); }
+}
+async function adminApproveDon(id){
+  try{
+    const {error}=await sb.from('donations').update({approved:true}).eq('id',id);
+    if(error) throw error;
+    toast('✅ התרומה אושרה ועלתה לפיד');
+    loadAdmin(); refreshData();
+  }catch(e){ console.error(e); toast('האישור נכשל — נסה שוב'); }
+}
+async function adminDeleteDon(id){
+  confirmKey=null;
+  try{
+    const {error}=await sb.from('donations').delete().eq('id',id);
+    if(error) throw error;
+    toast('התרומה נדחתה ונמחקה');
+    loadAdmin(); refreshData();
+  }catch(e){ console.error(e); toast('המחיקה נכשלה'); }
+}
+async function adminBlockPhone(){
+  const p=$('blkPhone').value.trim();
+  if(!PHONE_RE.test(p)){ toast('מספר לא תקין'); return; }
+  try{
+    const {error}=await sb.from('blocked_phones').insert({phone:p});
+    if(error) throw error;
+    toast('🚫 המספר נחסם');
+    loadAdmin();
+  }catch(e){ console.error(e); toast(e.code==='23505'?'המספר כבר חסום':'החסימה נכשלה'); }
+}
+async function adminUnblock(phone){
+  try{
+    const {error}=await sb.from('blocked_phones').delete().eq('phone',phone);
+    if(error) throw error;
+    toast('המספר שוחרר');
+    loadAdmin();
+  }catch(e){ console.error(e); toast('ההסרה נכשלה'); }
+}
+async function adminDeleteNeed(id){
+  confirmKey=null;
+  try{
+    const {error}=await sb.from('needs').delete().eq('id',id);
+    if(error) throw error;
+    toast('הצורך נמחק');
+    loadAdmin(); refreshData();
+  }catch(e){ console.error(e); toast('המחיקה נכשלה'); }
+}
+
 /* ---------- ניווט ---------- */
 function renderNav(){
+  const pend=adminCounts.farms+adminCounts.don;
   $('nav').innerHTML=
     navBtn('feed','🏠','צרכים')+navBtn('success','🎉','הצלחות')+
-    navBtn('settler','🌾','מתיישבים')+navBtn('support','🤝','חסות');
+    navBtn('settler','🌾','מתיישבים')+navBtn('support','🤝','חסות')+
+    (isAdmin?`<button class="${tab==='admin'?'on':''}" onclick="go('admin')"><span class="ni">🛡️</span>ניהול${pend>0?`<span class="navbadge">${pend}</span>`:''}</button>`:'');
 }
 function navBtn(id,ic,label){
   return `<button class="${tab===id?'on':''}" onclick="go('${id}')"><span class="ni">${ic}</span>${label}</button>`;
@@ -773,6 +1167,7 @@ function navBtn(id,ic,label){
 function go(t){
   tab=t; render(); $('screen').scrollTop=0;
   if(t==='settler' && session && myFarm===undefined) loadSettler();
+  if(t==='admin') loadAdmin();
 }
 function setTypeFilter(f){ typeFilter=f; render(); }
 function setRegionFilter(f){ regionFilter=f; render(); }
