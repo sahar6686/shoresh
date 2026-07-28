@@ -327,7 +327,7 @@ const TYPES={
   time:     {label:'זמן',  cls:'time',  ic:'🖐️', tp:'זמן / עבודה'}
 };
 const PHONE_RE=/^0\d{1,2}-?\d{7}$/;
-const APP_VER='1.5.1';
+const APP_VER='1.5.2';
 
 let sb=null;              // Supabase client
 let CFG={};               // config.json
@@ -753,8 +753,32 @@ function supportView(){
       <a class="wa" href="https://wa.me/${esc(b.whatsapp||'')}?text=${encodeURIComponent(b.whatsapp_text||'')}" target="_blank" rel="noopener">💬 וואטסאפ</a>
     </div>`;
   }
-  html+=`<div class="trust" style="margin-top:10px;opacity:.75">שורש · גרסה ${APP_VER}</div>`;
+  // לחיצה על הגרסה פותחת אבחון — כדי שאפשר יהיה לאבחן תקלת התקנה מרחוק
+  html+=`<div class="trust" style="margin-top:10px;opacity:.75;cursor:pointer" onclick="showDiag()">שורש · גרסה ${APP_VER}</div>`;
   return html;
+}
+
+async function showDiag(){
+  let sw='—', mf='—';
+  try{ const r=await navigator.serviceWorker.getRegistration(); sw=r&&r.active?'פעיל':'לא פעיל'; }catch(e){ sw='לא נתמך'; }
+  try{ const r=await fetch('manifest.json?v=2'); mf=r.ok?'תקין':('שגיאה '+r.status); }catch(e){ mf='לא נטען'; }
+  const rows=[
+    ['גרסה', APP_VER],
+    ['מערכת', isIOS()?'iOS':(isAndroid()?'אנדרואיד':'מחשב')],
+    ['רץ כאפליקציה', isStandalone()?'כן':'לא'],
+    ['כרום הציע התקנה', deferredPrompt?'כן':'לא'],
+    ['Service Worker', sw],
+    ['מניפסט', mf],
+    ['באנר נסגר בעבר', localStorage.getItem(A2HS_KEY)?'כן':'לא'],
+  ];
+  $('sheet').innerHTML=`
+    <div class="grab"></div>
+    <div class="big">🔧 אבחון</div>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:4px 0 10px">צלם את המסך הזה ושלח — זה מספיק כדי לאתר תקלה.</p>
+    ${rows.map(r=>`<div class="infoline"><span style="flex:1">${esc(r[0])}</span><b>${esc(String(r[1]))}</b></div>`).join('')}
+    <button class="btn olive" onclick="try{localStorage.removeItem(A2HS_KEY)}catch(e){};closeSheet();toast('אופס — הבאנר יוצג שוב')">אפס את באנר ההתקנה</button>
+    <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
+  $('overlay').classList.add('open');
 }
 
 /* ---------- דף צורך + הצעת עזרה ---------- */
@@ -1453,7 +1477,11 @@ function isIOS(){
   return /iphone|ipad|ipod/i.test(navigator.userAgent) ||
          (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1); // אייפד מודרני
 }
-function canInstall(){ return !isStandalone() && (deferredPrompt || isIOS()); }
+function isAndroid(){ return /android/i.test(navigator.userAgent); }
+/* חשוב: beforeinstallprompt לא תמיד נורה באנדרואיד — היוריסטיקת מעורבות של כרום,
+   דפדפן שאינו כרום, או משתמש שכבר יצר סימנייה לאותה כתובת. לכן ההצעה אינה
+   מותנית בקיומו: בלי זה משתמש אנדרואיד נשאר בלי שום דרך להתקין (קרה בפועל). */
+function canInstall(){ return !isStandalone() && (deferredPrompt || isIOS() || isAndroid()); }
 
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
@@ -1483,7 +1511,7 @@ function maybeShowA2HS(){
         <button class="go" onclick="doInstall()">הוסף</button>
         <button class="x" onclick="dismissA2HS()" aria-label="סגור">×</button>
       </div>`;
-  }, 12000);
+  }, 9000);
 }
 function hideA2HS(){ const s=$('a2hsSlot'); if(s) s.innerHTML=''; }
 function dismissA2HS(){
@@ -1501,6 +1529,25 @@ async function doInstall(){
     return;
   }
   if(isIOS()) showIOSInstructions();
+  else showAndroidInstructions();
+}
+
+function showAndroidInstructions(){
+  $('sheet').innerHTML=`
+    <div class="grab"></div>
+    <div class="big">📲 להוסיף את שורש למסך הבית</div>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:4px 0 12px;line-height:1.6">
+      שני צעדים בכרום — ואז שורש ייפתח כמו אפליקציה, בלי סרגל הכתובות.</p>
+    <div class="iosbox">
+      <div class="step"><div class="num">1</div>
+        <div>פתח את תפריט הדפדפן — <b>שלוש הנקודות <span class="share">⋮</span></b> בפינה העליונה</div></div>
+      <div class="step"><div class="num">2</div>
+        <div>בחר <b>"התקן אפליקציה"</b> ואשר <b>התקנה</b><br>
+        <span style="color:var(--ink-soft);font-size:12.5px">אם כתוב שם "הוספה למסך הבית" — בחר בו.</span></div></div>
+    </div>
+    <div class="infoline" style="margin-top:14px">💡 <span>הגעת מקישור בוואטסאפ? פתח את הכתובת <b>בכרום עצמו</b> — הדפדפן הפנימי של וואטסאפ לא יודע להתקין.</span></div>
+    <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
+  $('overlay').classList.add('open');
 }
 
 function showIOSInstructions(){
