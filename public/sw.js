@@ -6,7 +6,7 @@
  *    בנייד — ראה public/_headers. הכלל כאן: רשת קודם, תמיד.
  *    רק האייקונים נשמרים, והם ממילא לא משתנים.
  */
-const CACHE = 'shoresh-icons-v1';
+const CACHE = 'shoresh-icons-v2';
 const ICONS = ['icon-192.png', 'icon-512.png', 'icon-maskable.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -27,7 +27,10 @@ self.addEventListener('fetch', e => {
   const isIcon = ICONS.some(i => url.pathname.endsWith(i));
 
   if (isIcon && e.request.method === 'GET') {
-    e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+    // ignoreSearch: האייקונים נטענים עם ?v=… לשבירת מטמון, והמטמון שומר בלי.
+    e.respondWith(
+      caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request))
+    );
     return;
   }
   // כל השאר — ישר לרשת, בלי מטמון.
