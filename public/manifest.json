@@ -1,0 +1,19 @@
+{
+  "name": "שורש — נותנים יד למתיישבי הספר",
+  "short_name": "שורש",
+  "description": "מחברים בין מתיישבי חוות בגולן, בגליל, בנגב ובהר לבין אנשים שרוצים לתת יד — חפץ, שינוע או זמן.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EEECE0",
+  "theme_color": "#374420",
+  "categories": ["social", "lifestyle"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
