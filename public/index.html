@@ -327,7 +327,7 @@ const TYPES={
   time:     {label:'זמן',  cls:'time',  ic:'🖐️', tp:'זמן / עבודה'}
 };
 const PHONE_RE=/^0\d{1,2}-?\d{7}$/;
-const APP_VER='1.5.2';
+const APP_VER='1.5.3';
 
 let sb=null;              // Supabase client
 let CFG={};               // config.json
@@ -1545,7 +1545,8 @@ function showAndroidInstructions(){
         <div>בחר <b>"התקן אפליקציה"</b> ואשר <b>התקנה</b><br>
         <span style="color:var(--ink-soft);font-size:12.5px">אם כתוב שם "הוספה למסך הבית" — בחר בו.</span></div></div>
     </div>
-    <div class="infoline" style="margin-top:14px">💡 <span>הגעת מקישור בוואטסאפ? פתח את הכתובת <b>בכרום עצמו</b> — הדפדפן הפנימי של וואטסאפ לא יודע להתקין.</span></div>
+    <div class="infoline" style="margin-top:14px">✅ <span>רואה בתפריט <b>"פתיחה של שורש"</b> במקום "התקן אפליקציה"? <b>היא כבר מותקנת</b> — חפש אותה במגירת האפליקציות.</span></div>
+    <div class="infoline">💡 <span>הגעת מקישור בוואטסאפ? פתח את הכתובת <b>בכרום עצמו</b> — הדפדפן הפנימי של וואטסאפ לא יודע להתקין.</span></div>
     <button class="btn ghost" onclick="closeSheet()">סגור</button>`;
   $('overlay').classList.add('open');
 }
